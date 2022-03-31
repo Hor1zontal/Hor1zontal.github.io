@@ -1,289 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
-<search>
-  <entry>
-    <title>Hello World</title>
-    <url>/2022/03/30/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
-]]></content>
+<search> 
+  
+  
+    
+    <entry>
+      <title>raft协议的学习</title>
+      <link href="/2022/03/30/raft/"/>
+      <url>/2022/03/30/raft/</url>
+      
+        <content type="html"><![CDATA[<p>&lt;%- toc(page.content, {<br>class: ‘post-raft’,<br>list_number: true<br>}) %&gt;</p><p>本文基于论文<a href="https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14">In Search of an Understandable Consensus Algorithm</a>对raft协议进行分析学习</p><h1>前置知识</h1><h2 id="分布式存储系统">分布式存储系统</h2><p>  分布式存储系统，是将数据分散存储在多台独立的设备上。传统的网络存储系统采用集中的存储服务器存放所有数据，存储服务器成为系统性能的瓶颈，也是可靠性和安全性的焦点，不能满足大规模存储应用的需要。分布式网络存储系统采用可扩展的系统结构，利用多台存储服务器分担存储负荷，利用位置服务器定位存储信息，它不但提高了系统的可靠性、可用性和存取效率，还易于扩展。</p><h2 id="分布式系统的三大特性CAP">分布式系统的三大特性CAP</h2><ul><li>一致性（Consistency）：多个数据副本是否能够保持一致；</li><li>可用性（Availability）：每次请求都能获取非错的响应，但无法保证获取的数据是否最新；</li><li>分区容忍性（Partition tolerance）：网络分区指分布式系统中的各个节点，任意分区（节点）网络故障时，系统仍需要可以对外提供服务。</li></ul><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301500346.png" alt = "CAP" width="400" height="300"/><p>  分布式系统不可能同时满足这三个特性，最多只能同时满足其中两项，<strong>分区容忍性必不可少</strong>，因为需要总是假设网络不是可靠的，所以最终要在可用性和一致性之间做选择。</p><p>可用性与一致性是冲突的，在多节点之间进行数据同步时</p><ul><li>为了保持一致性（CP），就需要让系统暂停服务，等待数据同步完成</li><li>为了保证可用性（AP），同步过程中继续提供服务，读取的数据可能不一致</li></ul><table><thead><tr><th>CAP</th><th>适用场景</th><th>解释</th></tr></thead><tbody><tr><td>CA</td><td>几乎不存在</td><td>在分布式系统中，P必然存在，除非适用单机，要提升分区可靠性，需要通过提升基础设施的可靠性实现</td></tr><tr><td>CP</td><td>分布式数据库（redis、HBase、zk、etcd）</td><td>分布式数据库极端情况下优先保证数据一致性</td></tr><tr><td>AP</td><td>12306购票、淘宝购物</td><td>保证服务可用，购票下单后，一段时间后系统提示余票不足</td></tr></tbody></table><h2 id="分布式一致性raft">分布式一致性raft</h2><p>  raft牺牲了A，保留了CP。分布式存储系统通常通过维护多个副本来进行容错，提高系统的可用性。要实现此目标，就必须要解决分布式存储系统的最核心问题：维护多个副本的一致。</p><h2 id="什么是分布式一致性？">什么是分布式一致性？</h2><p>  分布式系统的一致性是构建具有容错性（fault-tolerant）的分布式系统的基础。在一个具有一致性的性质的集群里，同一时刻所有的节点对存储在其中的某个值都有相同的结果，即对其分享的存储保持一致。集群具有自动恢复的性质，当少数节点失效的时候不影响集群的正常工作，当大多数集群中的节点失效的时候，集群则会停止服务（不会返回一个错误的结果）。<br>一致性协议就是用来干这事的，用来保证即使在部分（确切来说是小部分）副本宕机的情况下，系统仍然能正常对外提供服务。一致性协议通常基于replicated state machines，即所有节点都从同一个state出发，都经过同样的一些操作序列（log），最后到达同样的state。</p><h2 id="同样的执行顺序，分布式系统如何实现高并发？">同样的执行顺序，分布式系统如何实现高并发？</h2><p>//todo</p><h1>Raft协议</h1><h2 id="Raft协议概述">Raft协议概述</h2><blockquote><p>It produces a result equivalent to (multi-)Paxos, and it is as efficient as Paxos, but its structure is different from Paxos; this makes Raft more understandable than Paxos and also provides a better foundation for building practical systems</p></blockquote><p>  Raft协议在功能上是等同于（Multi-）Paxos，并且在性能、可靠性、可用性方面是不输于Paxos的。但是raft协议的结构却跟Paxos是不同的，这使得raft协议更易于理解，并且让开发人员可以在很短的时间内开发出一个可用的系统。在raft出现之前，Paxos一直在共识算法中保持着统治级的地位，不幸的是，Paxos很难去理解。</p><blockquote><p>It was important not just for the algorithm to work, but for it to be obvious why it works.</p></blockquote><p>  重要的不仅是算法能够有效，更重要的是让大家很容易就知道他是如何运行的。</p><blockquote><p>In designing Raft we applied specific techniques to improve understandability, including decomposition (Raft separates leader election, log replication, and safety) and state space reduction (relative to Paxos, Raft reduces the degree of nondeterminism and the ways servers can be inconsistent with each other)</p></blockquote><p>  Raft算法主要做了两个工作去让大家去易于理解</p><ul><li>问题分解（decomposition）：将&quot;复制集中节点一致性&quot;这个复杂的问题划分为数个可以被独立解释、理解、解决的子问题。raft中子问题包括：leader elect，log replication，safety，membership changes</li><li>状态简化（state space reduction）：对算法做出一些限制，减少需要考虑的状态数，使得算法更加清晰，更少的不确定性（比如，保证新选举出来的leader会包含所有commited log entry）。</li></ul><h2 id="Basics">Basics</h2><blockquote><p>任何一个节点都处于以下三种状态之一</p></blockquote><ul><li>leader</li><li>follower</li><li>candidate</li></ul><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301710546.png" alt=""></p><p>  可以看出所有节点启动时都是follower状态；在一段时间内如果没有收到来自leader的心跳，从follower切换到candidate，发起选举；如果收到majority的造成票（含自己的一票）则切换到leader状态；如果发现其他节点比自己更新，则主动切换到follower。</p><p>  总之，系统中最多只有一个leader，如果在一段时间里发现没有leader，则大家通过选举-投票选出leader。leader会不停的给follower发心跳消息，表明自己的存活状态。如果leader故障，那么follower会转换成candidate，重新选出leader。</p><blockquote><p>term（任期的概念）</p></blockquote><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301720661.png" alt=""></p><p>  从上面可以看出，哪个节点做leader是大家投票选举出来的，每个leader工作一段时间，然后选出新的leader继续负责。这根民主社会的选举很像，每一届新的履职期称之为一届任期，在raft协议中，也是这样的，对应的术语叫term。</p><p>  term（任期）以选举（election）开始，然后就是一段或长或短的稳定工作期（normal Operation）。从上图可以看到，任期是递增的，这就充当了逻辑时钟的作用；另外，term 3展示了一种情况，就是说没有选举出leader就结束了，然后会发起新的选举，后面会解释这种split vote的情况。</p><blockquote><p>节点之间通信通过RPC，basic consensus algorithm使用两种RPC请求。</p></blockquote><ul><li>RequestVote RPC：由candidate在选举期间发起的；</li><li>AppendEntries RPC：被leader发起复制日志，并提供心跳。</li><li>(第三个RPC，用于在服务器之间传输快照。如果服务器没有及时收到响应，则会重试RPC，并并行发出RPC以获得最佳性能)</li></ul><h2 id="Leader-election">Leader election</h2><p>  一个节点启动，开始是follower，一个节点一直保持follower状态只要它能从leader或者candidate收到有效的RPC请求。</p><p>  leader一段时间给所有的follower发送一个心跳包(AppendEntries RPCs that carry no log entries);如果一个follower在一段时间没有收到RPC请求，则称之为election timeout(选举超时)，然后它就假设系统中没有leader，并且发起一个选举来选择新的leader。</p><p>  选举开始，发起选举的follower节点的term+1，并且转换为candidate状态，然后该节点为自己投票并且在集群中给其他节点发送RequestVote RPC请求。这个节点会一直保持在candidate状态，直到以下三个事情发生：</p><ul><li><p>it wins the election。该节点赢得选举；</p><ul><li>而一个节点(candidate)赢得选举的情况是它赢得了集群中大多数（&gt;1/2）节点(相同的term)的投票(包含自己的票)。每个节点只能投一票。</li><li>todo The majority rule ensures that at most one candidate can win the election for a particular term</li></ul></li><li><p>another server establishes itself as leader。另外一个节点赢得选举；</p></li><li><p>a period of time goes by with no winner。一段时间过后，没有节点赢得选举；</p></li></ul><h2 id="Log-replication">Log replication</h2><h2 id="Safety">Safety</h2>]]></content>
+      
+      
       <categories>
-        <category>new</category>
+          
+          <category> 分布式 </category>
+          
+          <category> raft </category>
+          
       </categories>
-      <tags>
-        <tag>hello</tag>
-        <tag>world</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>test_my_site</title>
-    <url>/2022/03/30/test-my-site/</url>
-    <content><![CDATA[]]></content>
+      
+      
+        <tags>
+            
+            <tag> 共识算法 </tag>
+            
+            <tag> raft </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Python语法学习</title>
+      <link href="/2022/03/30/python/"/>
+      <url>/2022/03/30/python/</url>
+      
+        <content type="html"><![CDATA[<h1 id="Python"><a href="#Python" class="headerlink" title="Python"></a>Python</h1><h2 id="语法"><a href="#语法" class="headerlink" title="语法"></a>语法</h2><h3 id="turle-海龟画图"><a href="#turle-海龟画图" class="headerlink" title="turle 海龟画图"></a>turle 海龟画图</h3><ul><li>坐标原点在中心，跟坐标系一样 默认向x轴正方向</li></ul><h3 id="可以使用Python中内置的函数对变量类型进行转换。"><a href="#可以使用Python中内置的函数对变量类型进行转换。" class="headerlink" title="可以使用Python中内置的函数对变量类型进行转换。"></a>可以使用Python中内置的函数对变量类型进行转换。</h3><ul><li><code>int()</code>：将一个数值或字符串转换成整数，可以指定进制。</li><li><code>float()</code>：将一个字符串转换成浮点数。</li><li><code>str()</code>：将指定的对象转换成字符串形式，可以指定编码。</li><li><code>chr()</code>：将整数转换成该编码对应的字符串（一个字符）。</li><li><code>ord()</code>：将字符串（一个字符）转换成对应的编码（整数）。</li></ul><h3 id="占位符"><a href="#占位符" class="headerlink" title="占位符"></a>占位符</h3><ul><li><code>%d</code>是整数的占位符</li><li><code>%f</code>是小数的占位符</li><li><code>%%</code>表示百分号<br><code>print(&#39;%.1f华氏度 = %.1f摄氏度&#39; % (f, c))</code><br>说明：在使用print函数输出时，也可以对字符串内容进行格式化处理，上面print函数中的字符串%.1f是一个占位符，稍后会由一个float类型的变量值替换掉它。同理，如果字符串中有%d，后面可以用一个int类型的变量值替换掉它，而%s会被字符串的值替换掉。除了这种格式化字符串的方式外，还可以用下面的方式来格式化字符串，其中{f:.1f}和{c:.1f}可以先看成是{f}和{c}，表示输出时会用变量f和变量c的值替换掉这两个占位符，后面的:.1f表示这是一个浮点数，小数点后保留1位有效数字。</li></ul><p><code>print(f&#39;&#123;f:.1f&#125;华氏度 = &#123;c:.1f&#125;摄氏度&#39;)</code></p><h3 id="运算符"><a href="#运算符" class="headerlink" title="运算符"></a>运算符</h3><table><thead><tr><th>运算符</th><th>描述</th></tr></thead><tbody><tr><td><code>[]</code> <code>[:]</code></td><td>下标，切片</td></tr><tr><td><code>**</code></td><td>指数</td></tr><tr><td><code>~</code> <code>+</code> <code>-</code></td><td>按位取反, 正负号</td></tr><tr><td><code>*</code> <code>/</code> <code>%</code> <code>//</code></td><td>乘，除，模，整除</td></tr><tr><td><code>+</code> <code>-</code></td><td>加，减</td></tr><tr><td><code>&gt;&gt;</code> <code>&lt;&lt;</code></td><td>右移，左移</td></tr><tr><td><code>&amp;</code></td><td>按位与</td></tr><tr><td><code>^</code> <code>|</code></td><td>按位异或，按位或</td></tr><tr><td><code>&lt;=</code> <code>&lt;</code> <code>&gt;</code> <code>&gt;=</code></td><td>小于等于，小于，大于，大于等于</td></tr><tr><td><code>==</code> <code>!=</code></td><td>等于，不等于</td></tr><tr><td><code>is</code>  <code>is not</code></td><td>身份运算符</td></tr><tr><td><code>in</code> <code>not in</code></td><td>成员运算符</td></tr><tr><td><code>not</code> <code>or</code> <code>and</code></td><td>逻辑运算符</td></tr><tr><td><code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>//=</code> <code>**=</code> <code>&amp;=</code> &#96;</td><td>&#x3D;<code> </code>^&#x3D;<code> </code>&gt;&gt;&#x3D;<code> </code>&lt;&lt;&#x3D;&#96;</td></tr></tbody></table><h3 id="if语句"><a href="#if语句" class="headerlink" title="if语句"></a>if语句</h3><p><code>if...elif...else</code><br><code>if...else</code></p><h3 id="循环结构"><a href="#循环结构" class="headerlink" title="循环结构"></a>循环结构</h3><p><em>for-in循环</em></p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sum</span> = <span class="number">0</span></span><br><span class="line"><span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">101</span>):</span><br><span class="line">    <span class="built_in">sum</span> += x</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">sum</span>)</span><br></pre></td></tr></table></figure><ul><li><code>range(101)</code>：可以用来产生0到100范围的整数，需要注意的是取不到101。</li><li><code>range(1, 101)</code>：可以用来产生1到100范围的整数，相当于前面是闭区间后面是开区间。</li><li><code>range(1, 101, 2)</code>：可以用来产生1到100的奇数，其中2是步长，即每次数值递增的值。</li><li><code>range(100, 0, -2)</code>：可以用来产生100到1的偶数，其中-2是步长，即每次数字递减的值。</li></ul><p><em>while循环</em></p><h3 id="使用字符串"><a href="#使用字符串" class="headerlink" title="使用字符串"></a>使用字符串</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;hello, world!&#x27;</span></span><br><span class="line">s2 = <span class="string">&quot;hello, world!&quot;</span></span><br><span class="line"><span class="comment"># 以三个双引号或单引号开头的字符串可以折行</span></span><br><span class="line">s3 = <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">hello, </span></span><br><span class="line"><span class="string">world!</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="built_in">print</span>(s1, s2, s3, end=<span class="string">&#x27;&#x27;</span>)</span><br></pre></td></tr></table></figure><p>可以在字符串中使用<code>\</code>（反斜杠）来表示转义，也就是说<code>\</code>后面的字符不再是它原来的意义，例如：<code>\n</code>不是代表反斜杠和字符n，而是表示换行；而<code>\t</code>也不是代表反斜杠和字符t，而是表示制表符。所以如果想在字符串中表示<code>&#39;</code>要写成<code>\&#39;</code>，同理想表示<code>\</code>要写成<code>\\</code>。可以运行下面的代码看看会输出什么。</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;\&#x27;hello, world!\&#x27;&#x27;</span></span><br><span class="line">s2 = <span class="string">&#x27;\n\\hello, world!\\\n&#x27;</span></span><br><span class="line"><span class="built_in">print</span>(s1, s2, end=<span class="string">&#x27;&#x27;</span>)</span><br></pre></td></tr></table></figure><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;hello &#x27;</span> * <span class="number">3</span></span><br><span class="line"><span class="built_in">print</span>(s1) <span class="comment"># hello hello hello </span></span><br><span class="line">s2 = <span class="string">&#x27;world&#x27;</span></span><br><span class="line">s1 += s2</span><br><span class="line"><span class="built_in">print</span>(s1) <span class="comment"># hello hello hello world</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;ll&#x27;</span> <span class="keyword">in</span> s1) <span class="comment"># True</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;good&#x27;</span> <span class="keyword">in</span> s1) <span class="comment"># False</span></span><br><span class="line">str2 = <span class="string">&#x27;abc123456&#x27;</span></span><br><span class="line"><span class="comment"># 从字符串中取出指定位置的字符(下标运算)</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>]) <span class="comment"># c</span></span><br><span class="line"><span class="comment"># 字符串切片(从指定的开始索引到指定的结束索引)</span></span><br><span class="line"><span class="comment"># 切片[]取左不取右</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>:<span class="number">5</span>]) <span class="comment"># c12</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>:]) <span class="comment"># c123456</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>::<span class="number">2</span>]) <span class="comment"># c246</span></span><br><span class="line"><span class="built_in">print</span>(str2[::<span class="number">2</span>]) <span class="comment"># ac246</span></span><br><span class="line"><span class="built_in">print</span>(str2[::-<span class="number">1</span>]) <span class="comment"># 654321cba</span></span><br><span class="line"><span class="built_in">print</span>(str2[-<span class="number">3</span>:-<span class="number">1</span>]) <span class="comment"># 45</span></span><br></pre></td></tr></table></figure><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">str1 = <span class="string">&#x27;hello, world!&#x27;</span></span><br><span class="line"><span class="comment"># 通过内置函数len计算字符串的长度</span></span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">len</span>(str1)) <span class="comment"># 13</span></span><br><span class="line"><span class="comment"># 获得字符串首字母大写的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.capitalize()) <span class="comment"># Hello, world!</span></span><br><span class="line"><span class="comment"># 获得字符串每个单词首字母大写的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.title()) <span class="comment"># Hello, World!</span></span><br><span class="line"><span class="comment"># 获得字符串变大写后的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.upper()) <span class="comment"># HELLO, WORLD!</span></span><br><span class="line"><span class="comment"># 从字符串中查找子串所在位置</span></span><br><span class="line"><span class="built_in">print</span>(str1.find(<span class="string">&#x27;or&#x27;</span>)) <span class="comment"># 8</span></span><br><span class="line"><span class="built_in">print</span>(str1.find(<span class="string">&#x27;shit&#x27;</span>)) <span class="comment"># -1</span></span><br><span class="line"><span class="comment"># 与find类似但找不到子串时会引发异常</span></span><br><span class="line"><span class="comment"># print(str1.index(&#x27;or&#x27;))</span></span><br><span class="line"><span class="comment"># print(str1.index(&#x27;shit&#x27;))</span></span><br><span class="line"><span class="comment"># 检查字符串是否以指定的字符串开头</span></span><br><span class="line"><span class="built_in">print</span>(str1.startswith(<span class="string">&#x27;He&#x27;</span>)) <span class="comment"># False</span></span><br><span class="line"><span class="built_in">print</span>(str1.startswith(<span class="string">&#x27;hel&#x27;</span>)) <span class="comment"># True</span></span><br><span class="line"><span class="comment"># 检查字符串是否以指定的字符串结尾</span></span><br><span class="line"><span class="built_in">print</span>(str1.endswith(<span class="string">&#x27;!&#x27;</span>)) <span class="comment"># True</span></span><br><span class="line"><span class="comment"># 将字符串以指定的宽度居中并在两侧填充指定的字符</span></span><br><span class="line"><span class="built_in">print</span>(str1.center(<span class="number">50</span>, <span class="string">&#x27;*&#x27;</span>))</span><br><span class="line"><span class="comment"># 将字符串以指定的宽度靠右放置左侧填充指定的字符</span></span><br><span class="line"><span class="built_in">print</span>(str1.rjust(<span class="number">50</span>, <span class="string">&#x27; &#x27;</span>))</span><br><span class="line">str2 = <span class="string">&#x27;abc123456&#x27;</span></span><br><span class="line"><span class="comment"># 检查字符串是否由数字构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isdigit())  <span class="comment"># False</span></span><br><span class="line"><span class="comment"># 检查字符串是否以字母构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isalpha())  <span class="comment"># False</span></span><br><span class="line"><span class="comment"># 检查字符串是否以数字和字母构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isalnum())  <span class="comment"># True</span></span><br><span class="line">str3 = <span class="string">&#x27;  jackfrued@126.com &#x27;</span></span><br><span class="line"><span class="built_in">print</span>(str3)</span><br><span class="line"><span class="comment"># 获得字符串修剪左右两侧空格之后的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str3.strip())</span><br></pre></td></tr></table></figure><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;%d * %d = %d&#x27;</span> % (a, b, a * b))</span><br></pre></td></tr></table></figure><p>当然，我们也可以用字符串提供的方法来完成字符串的格式，代码如下所示。</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;&#123;0&#125; * &#123;1&#125; = &#123;2&#125;&#x27;</span>.<span class="built_in">format</span>(a, b, a * b))</span><br></pre></td></tr></table></figure><p>Python 3.6以后，格式化字符串还有更为简洁的书写方式，就是在字符串前加上字母<code>f</code>，我们可以使用下面的语法糖来简化上面的代码。</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&#x27;<span class="subst">&#123;a&#125;</span> * <span class="subst">&#123;b&#125;</span> = <span class="subst">&#123;a * b&#125;</span>&#x27;</span>)</span><br></pre></td></tr></table></figure>]]></content>
+      
+      
       <categories>
-        <category>new</category>
+          
+          <category> python </category>
+          
       </categories>
-      <tags>
-        <tag>hello</tag>
-        <tag>world</tag>
-        <tag>new</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Python语法学习</title>
-    <url>/2022/03/30/python/</url>
-    <content><![CDATA[<h1 id="Python"><a href="#Python" class="headerlink" title="Python"></a>Python</h1><h2 id="语法"><a href="#语法" class="headerlink" title="语法"></a>语法</h2><h3 id="turle-海龟画图"><a href="#turle-海龟画图" class="headerlink" title="turle 海龟画图"></a>turle 海龟画图</h3><ul>
-<li>坐标原点在中心，跟坐标系一样 默认向x轴正方向</li>
-</ul>
-<h3 id="可以使用Python中内置的函数对变量类型进行转换。"><a href="#可以使用Python中内置的函数对变量类型进行转换。" class="headerlink" title="可以使用Python中内置的函数对变量类型进行转换。"></a>可以使用Python中内置的函数对变量类型进行转换。</h3><ul>
-<li><code>int()</code>：将一个数值或字符串转换成整数，可以指定进制。</li>
-<li><code>float()</code>：将一个字符串转换成浮点数。</li>
-<li><code>str()</code>：将指定的对象转换成字符串形式，可以指定编码。</li>
-<li><code>chr()</code>：将整数转换成该编码对应的字符串（一个字符）。</li>
-<li><code>ord()</code>：将字符串（一个字符）转换成对应的编码（整数）。</li>
-</ul>
-<h3 id="占位符"><a href="#占位符" class="headerlink" title="占位符"></a>占位符</h3><ul>
-<li><code>%d</code>是整数的占位符</li>
-<li><code>%f</code>是小数的占位符</li>
-<li><code>%%</code>表示百分号<br><code>print(&#39;%.1f华氏度 = %.1f摄氏度&#39; % (f, c))</code><br>说明：在使用print函数输出时，也可以对字符串内容进行格式化处理，上面print函数中的字符串%.1f是一个占位符，稍后会由一个float类型的变量值替换掉它。同理，如果字符串中有%d，后面可以用一个int类型的变量值替换掉它，而%s会被字符串的值替换掉。除了这种格式化字符串的方式外，还可以用下面的方式来格式化字符串，其中{f:.1f}和{c:.1f}可以先看成是{f}和{c}，表示输出时会用变量f和变量c的值替换掉这两个占位符，后面的:.1f表示这是一个浮点数，小数点后保留1位有效数字。</li>
-</ul>
-<p><code>print(f&#39;&#123;f:.1f&#125;华氏度 = &#123;c:.1f&#125;摄氏度&#39;)</code></p>
-<h3 id="运算符"><a href="#运算符" class="headerlink" title="运算符"></a>运算符</h3><table>
-<thead>
-<tr>
-<th>运算符</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody><tr>
-<td><code>[]</code> <code>[:]</code></td>
-<td>下标，切片</td>
-</tr>
-<tr>
-<td><code>**</code></td>
-<td>指数</td>
-</tr>
-<tr>
-<td><code>~</code> <code>+</code> <code>-</code></td>
-<td>按位取反, 正负号</td>
-</tr>
-<tr>
-<td><code>*</code> <code>/</code> <code>%</code> <code>//</code></td>
-<td>乘，除，模，整除</td>
-</tr>
-<tr>
-<td><code>+</code> <code>-</code></td>
-<td>加，减</td>
-</tr>
-<tr>
-<td><code>&gt;&gt;</code> <code>&lt;&lt;</code></td>
-<td>右移，左移</td>
-</tr>
-<tr>
-<td><code>&amp;</code></td>
-<td>按位与</td>
-</tr>
-<tr>
-<td><code>^</code> <code>|</code></td>
-<td>按位异或，按位或</td>
-</tr>
-<tr>
-<td><code>&lt;=</code> <code>&lt;</code> <code>&gt;</code> <code>&gt;=</code></td>
-<td>小于等于，小于，大于，大于等于</td>
-</tr>
-<tr>
-<td><code>==</code> <code>!=</code></td>
-<td>等于，不等于</td>
-</tr>
-<tr>
-<td><code>is</code>  <code>is not</code></td>
-<td>身份运算符</td>
-</tr>
-<tr>
-<td><code>in</code> <code>not in</code></td>
-<td>成员运算符</td>
-</tr>
-<tr>
-<td><code>not</code> <code>or</code> <code>and</code></td>
-<td>逻辑运算符</td>
-</tr>
-<tr>
-<td><code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>//=</code> <code>**=</code> <code>&amp;=</code> &#96;</td>
-<td>&#x3D;<code> </code>^&#x3D;<code> </code>&gt;&gt;&#x3D;<code> </code>&lt;&lt;&#x3D;&#96;</td>
-</tr>
-</tbody></table>
-<h3 id="if语句"><a href="#if语句" class="headerlink" title="if语句"></a>if语句</h3><p><code>if...elif...else</code><br><code>if...else</code></p>
-<h3 id="循环结构"><a href="#循环结构" class="headerlink" title="循环结构"></a>循环结构</h3><p><em>for-in循环</em></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sum</span> = <span class="number">0</span></span><br><span class="line"><span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">101</span>):</span><br><span class="line">    <span class="built_in">sum</span> += x</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">sum</span>)</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><code>range(101)</code>：可以用来产生0到100范围的整数，需要注意的是取不到101。</li>
-<li><code>range(1, 101)</code>：可以用来产生1到100范围的整数，相当于前面是闭区间后面是开区间。</li>
-<li><code>range(1, 101, 2)</code>：可以用来产生1到100的奇数，其中2是步长，即每次数值递增的值。</li>
-<li><code>range(100, 0, -2)</code>：可以用来产生100到1的偶数，其中-2是步长，即每次数字递减的值。</li>
-</ul>
-<p><em>while循环</em></p>
-<h3 id="使用字符串"><a href="#使用字符串" class="headerlink" title="使用字符串"></a>使用字符串</h3><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;hello, world!&#x27;</span></span><br><span class="line">s2 = <span class="string">&quot;hello, world!&quot;</span></span><br><span class="line"><span class="comment"># 以三个双引号或单引号开头的字符串可以折行</span></span><br><span class="line">s3 = <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">hello, </span></span><br><span class="line"><span class="string">world!</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="built_in">print</span>(s1, s2, s3, end=<span class="string">&#x27;&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<p>可以在字符串中使用<code>\</code>（反斜杠）来表示转义，也就是说<code>\</code>后面的字符不再是它原来的意义，例如：<code>\n</code>不是代表反斜杠和字符n，而是表示换行；而<code>\t</code>也不是代表反斜杠和字符t，而是表示制表符。所以如果想在字符串中表示<code>&#39;</code>要写成<code>\&#39;</code>，同理想表示<code>\</code>要写成<code>\\</code>。可以运行下面的代码看看会输出什么。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;\&#x27;hello, world!\&#x27;&#x27;</span></span><br><span class="line">s2 = <span class="string">&#x27;\n\\hello, world!\\\n&#x27;</span></span><br><span class="line"><span class="built_in">print</span>(s1, s2, end=<span class="string">&#x27;&#x27;</span>)</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;hello &#x27;</span> * <span class="number">3</span></span><br><span class="line"><span class="built_in">print</span>(s1) <span class="comment"># hello hello hello </span></span><br><span class="line">s2 = <span class="string">&#x27;world&#x27;</span></span><br><span class="line">s1 += s2</span><br><span class="line"><span class="built_in">print</span>(s1) <span class="comment"># hello hello hello world</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;ll&#x27;</span> <span class="keyword">in</span> s1) <span class="comment"># True</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;good&#x27;</span> <span class="keyword">in</span> s1) <span class="comment"># False</span></span><br><span class="line">str2 = <span class="string">&#x27;abc123456&#x27;</span></span><br><span class="line"><span class="comment"># 从字符串中取出指定位置的字符(下标运算)</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>]) <span class="comment"># c</span></span><br><span class="line"><span class="comment"># 字符串切片(从指定的开始索引到指定的结束索引)</span></span><br><span class="line"><span class="comment"># 切片[]取左不取右</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>:<span class="number">5</span>]) <span class="comment"># c12</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>:]) <span class="comment"># c123456</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>::<span class="number">2</span>]) <span class="comment"># c246</span></span><br><span class="line"><span class="built_in">print</span>(str2[::<span class="number">2</span>]) <span class="comment"># ac246</span></span><br><span class="line"><span class="built_in">print</span>(str2[::-<span class="number">1</span>]) <span class="comment"># 654321cba</span></span><br><span class="line"><span class="built_in">print</span>(str2[-<span class="number">3</span>:-<span class="number">1</span>]) <span class="comment"># 45</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">str1 = <span class="string">&#x27;hello, world!&#x27;</span></span><br><span class="line"><span class="comment"># 通过内置函数len计算字符串的长度</span></span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">len</span>(str1)) <span class="comment"># 13</span></span><br><span class="line"><span class="comment"># 获得字符串首字母大写的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.capitalize()) <span class="comment"># Hello, world!</span></span><br><span class="line"><span class="comment"># 获得字符串每个单词首字母大写的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.title()) <span class="comment"># Hello, World!</span></span><br><span class="line"><span class="comment"># 获得字符串变大写后的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.upper()) <span class="comment"># HELLO, WORLD!</span></span><br><span class="line"><span class="comment"># 从字符串中查找子串所在位置</span></span><br><span class="line"><span class="built_in">print</span>(str1.find(<span class="string">&#x27;or&#x27;</span>)) <span class="comment"># 8</span></span><br><span class="line"><span class="built_in">print</span>(str1.find(<span class="string">&#x27;shit&#x27;</span>)) <span class="comment"># -1</span></span><br><span class="line"><span class="comment"># 与find类似但找不到子串时会引发异常</span></span><br><span class="line"><span class="comment"># print(str1.index(&#x27;or&#x27;))</span></span><br><span class="line"><span class="comment"># print(str1.index(&#x27;shit&#x27;))</span></span><br><span class="line"><span class="comment"># 检查字符串是否以指定的字符串开头</span></span><br><span class="line"><span class="built_in">print</span>(str1.startswith(<span class="string">&#x27;He&#x27;</span>)) <span class="comment"># False</span></span><br><span class="line"><span class="built_in">print</span>(str1.startswith(<span class="string">&#x27;hel&#x27;</span>)) <span class="comment"># True</span></span><br><span class="line"><span class="comment"># 检查字符串是否以指定的字符串结尾</span></span><br><span class="line"><span class="built_in">print</span>(str1.endswith(<span class="string">&#x27;!&#x27;</span>)) <span class="comment"># True</span></span><br><span class="line"><span class="comment"># 将字符串以指定的宽度居中并在两侧填充指定的字符</span></span><br><span class="line"><span class="built_in">print</span>(str1.center(<span class="number">50</span>, <span class="string">&#x27;*&#x27;</span>))</span><br><span class="line"><span class="comment"># 将字符串以指定的宽度靠右放置左侧填充指定的字符</span></span><br><span class="line"><span class="built_in">print</span>(str1.rjust(<span class="number">50</span>, <span class="string">&#x27; &#x27;</span>))</span><br><span class="line">str2 = <span class="string">&#x27;abc123456&#x27;</span></span><br><span class="line"><span class="comment"># 检查字符串是否由数字构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isdigit())  <span class="comment"># False</span></span><br><span class="line"><span class="comment"># 检查字符串是否以字母构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isalpha())  <span class="comment"># False</span></span><br><span class="line"><span class="comment"># 检查字符串是否以数字和字母构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isalnum())  <span class="comment"># True</span></span><br><span class="line">str3 = <span class="string">&#x27;  jackfrued@126.com &#x27;</span></span><br><span class="line"><span class="built_in">print</span>(str3)</span><br><span class="line"><span class="comment"># 获得字符串修剪左右两侧空格之后的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str3.strip())</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;%d * %d = %d&#x27;</span> % (a, b, a * b))</span><br></pre></td></tr></table></figure>
-
-<p>当然，我们也可以用字符串提供的方法来完成字符串的格式，代码如下所示。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;&#123;0&#125; * &#123;1&#125; = &#123;2&#125;&#x27;</span>.<span class="built_in">format</span>(a, b, a * b))</span><br></pre></td></tr></table></figure>
-
-<p>Python 3.6以后，格式化字符串还有更为简洁的书写方式，就是在字符串前加上字母<code>f</code>，我们可以使用下面的语法糖来简化上面的代码。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&#x27;<span class="subst">&#123;a&#125;</span> * <span class="subst">&#123;b&#125;</span> = <span class="subst">&#123;a * b&#125;</span>&#x27;</span>)</span><br></pre></td></tr></table></figure>]]></content>
+      
+      
+        <tags>
+            
+            <tag> python </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>test_my_site</title>
+      <link href="/2022/03/30/test-my-site/"/>
+      <url>/2022/03/30/test-my-site/</url>
+      
+        <content type="html"><![CDATA[]]></content>
+      
+      
       <categories>
-        <category>python</category>
+          
+          <category> new </category>
+          
       </categories>
-      <tags>
-        <tag>python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>raft协议的学习</title>
-    <url>/2022/03/30/raft/</url>
-    <content><![CDATA[<p>&lt;%- toc(page.content, {<br>
-class: ‘post-raft’,<br>
-list_number: true<br>
-}) %&gt;</p>
-<p>本文基于论文<a href="https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14">In Search of an Understandable Consensus Algorithm</a>对raft协议进行分析学习</p>
-<h1>前置知识</h1>
-<h2 id="分布式存储系统">分布式存储系统</h2>
-<p>  分布式存储系统，是将数据分散存储在多台独立的设备上。传统的网络存储系统采用集中的存储服务器存放所有数据，存储服务器成为系统性能的瓶颈，也是可靠性和安全性的焦点，不能满足大规模存储应用的需要。分布式网络存储系统采用可扩展的系统结构，利用多台存储服务器分担存储负荷，利用位置服务器定位存储信息，它不但提高了系统的可靠性、可用性和存取效率，还易于扩展。</p>
-<h2 id="分布式系统的三大特性CAP">分布式系统的三大特性CAP</h2>
-<ul>
-<li>一致性（Consistency）：多个数据副本是否能够保持一致；</li>
-<li>可用性（Availability）：每次请求都能获取非错的响应，但无法保证获取的数据是否最新；</li>
-<li>分区容忍性（Partition tolerance）：网络分区指分布式系统中的各个节点，任意分区（节点）网络故障时，系统仍需要可以对外提供服务。</li>
-</ul>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301500346.png" alt = "CAP" width="400" height="300"/>
-<p>  分布式系统不可能同时满足这三个特性，最多只能同时满足其中两项，<strong>分区容忍性必不可少</strong>，因为需要总是假设网络不是可靠的，所以最终要在可用性和一致性之间做选择。</p>
-<p>可用性与一致性是冲突的，在多节点之间进行数据同步时</p>
-<ul>
-<li>为了保持一致性（CP），就需要让系统暂停服务，等待数据同步完成</li>
-<li>为了保证可用性（AP），同步过程中继续提供服务，读取的数据可能不一致</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>CAP</th>
-<th>适用场景</th>
-<th>解释</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>CA</td>
-<td>几乎不存在</td>
-<td>在分布式系统中，P必然存在，除非适用单机，要提升分区可靠性，需要通过提升基础设施的可靠性实现</td>
-</tr>
-<tr>
-<td>CP</td>
-<td>分布式数据库（redis、HBase、zk、etcd）</td>
-<td>分布式数据库极端情况下优先保证数据一致性</td>
-</tr>
-<tr>
-<td>AP</td>
-<td>12306购票、淘宝购物</td>
-<td>保证服务可用，购票下单后，一段时间后系统提示余票不足</td>
-</tr>
-</tbody>
-</table>
-<h2 id="分布式一致性raft">分布式一致性raft</h2>
-<p>  raft牺牲了A，保留了CP。分布式存储系统通常通过维护多个副本来进行容错，提高系统的可用性。要实现此目标，就必须要解决分布式存储系统的最核心问题：维护多个副本的一致。</p>
-<h2 id="什么是分布式一致性？">什么是分布式一致性？</h2>
-<p>  分布式系统的一致性是构建具有容错性（fault-tolerant）的分布式系统的基础。在一个具有一致性的性质的集群里，同一时刻所有的节点对存储在其中的某个值都有相同的结果，即对其分享的存储保持一致。集群具有自动恢复的性质，当少数节点失效的时候不影响集群的正常工作，当大多数集群中的节点失效的时候，集群则会停止服务（不会返回一个错误的结果）。<br>
-一致性协议就是用来干这事的，用来保证即使在部分（确切来说是小部分）副本宕机的情况下，系统仍然能正常对外提供服务。一致性协议通常基于replicated state machines，即所有节点都从同一个state出发，都经过同样的一些操作序列（log），最后到达同样的state。</p>
-<h2 id="同样的执行顺序，分布式系统如何实现高并发？">同样的执行顺序，分布式系统如何实现高并发？</h2>
-<p>//todo</p>
-<h1>Raft协议</h1>
-<h2 id="Raft协议概述">Raft协议概述</h2>
-<blockquote>
-<p>It produces a result equivalent to (multi-)Paxos, and it is as efficient as Paxos, but its structure is different from Paxos; this makes Raft more understandable than Paxos and also provides a better foundation for building practical systems</p>
-</blockquote>
-<p>  Raft协议在功能上是等同于（Multi-）Paxos，并且在性能、可靠性、可用性方面是不输于Paxos的。但是raft协议的结构却跟Paxos是不同的，这使得raft协议更易于理解，并且让开发人员可以在很短的时间内开发出一个可用的系统。在raft出现之前，Paxos一直在共识算法中保持着统治级的地位，不幸的是，Paxos很难去理解。</p>
-<blockquote>
-<p>It was important not just for the algorithm to work, but for it to be obvious why it works.</p>
-</blockquote>
-<p>  重要的不仅是算法能够有效，更重要的是让大家很容易就知道他是如何运行的。</p>
-<blockquote>
-<p>In designing Raft we applied specific techniques to improve understandability, including decomposition (Raft separates leader election, log replication, and safety) and state space reduction (relative to Paxos, Raft reduces the degree of nondeterminism and the ways servers can be inconsistent with each other)</p>
-</blockquote>
-<p>  Raft算法主要做了两个工作去让大家去易于理解</p>
-<ul>
-<li>问题分解（decomposition）：将&quot;复制集中节点一致性&quot;这个复杂的问题划分为数个可以被独立解释、理解、解决的子问题。raft中子问题包括：leader elect，log replication，safety，membership changes</li>
-<li>状态简化（state space reduction）：对算法做出一些限制，减少需要考虑的状态数，使得算法更加清晰，更少的不确定性（比如，保证新选举出来的leader会包含所有commited log entry）。</li>
-</ul>
-<h2 id="Basics">Basics</h2>
-<blockquote>
-<p>任何一个节点都处于以下三种状态之一</p>
-</blockquote>
-<ul>
-<li>leader</li>
-<li>follower</li>
-<li>candidate</li>
-</ul>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301710546.png" alt=""></p>
-<p>  可以看出所有节点启动时都是follower状态；在一段时间内如果没有收到来自leader的心跳，从follower切换到candidate，发起选举；如果收到majority的造成票（含自己的一票）则切换到leader状态；如果发现其他节点比自己更新，则主动切换到follower。</p>
-<p>  总之，系统中最多只有一个leader，如果在一段时间里发现没有leader，则大家通过选举-投票选出leader。leader会不停的给follower发心跳消息，表明自己的存活状态。如果leader故障，那么follower会转换成candidate，重新选出leader。</p>
-<blockquote>
-<p>term（任期的概念）</p>
-</blockquote>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301720661.png" alt=""></p>
-<p>  从上面可以看出，哪个节点做leader是大家投票选举出来的，每个leader工作一段时间，然后选出新的leader继续负责。这根民主社会的选举很像，每一届新的履职期称之为一届任期，在raft协议中，也是这样的，对应的术语叫term。</p>
-<p>  term（任期）以选举（election）开始，然后就是一段或长或短的稳定工作期（normal Operation）。从上图可以看到，任期是递增的，这就充当了逻辑时钟的作用；另外，term 3展示了一种情况，就是说没有选举出leader就结束了，然后会发起新的选举，后面会解释这种split vote的情况。</p>
-<blockquote>
-<p>节点之间通信通过RPC，basic consensus algorithm使用两种RPC请求。</p>
-</blockquote>
-<ul>
-<li>RequestVote RPC：由candidate在选举期间发起的；</li>
-<li>AppendEntries RPC：被leader发起复制日志，并提供心跳。</li>
-<li>(第三个RPC，用于在服务器之间传输快照。如果服务器没有及时收到响应，则会重试RPC，并并行发出RPC以获得最佳性能)</li>
-</ul>
-<h2 id="Leader-election">Leader election</h2>
-<p>  一个节点启动，开始是follower，一个节点一直保持follower状态只要它能从leader或者candidate收到有效的RPC请求。</p>
-<p>  leader一段时间给所有的follower发送一个心跳包(AppendEntries RPCs that carry no log entries);如果一个follower在一段时间没有收到RPC请求，则称之为election timeout(选举超时)，然后它就假设系统中没有leader，并且发起一个选举来选择新的leader。</p>
-<p>  选举开始，发起选举的follower节点的term+1，并且转换为candidate状态，然后该节点为自己投票并且在集群中给其他节点发送RequestVote RPC请求。这个节点会一直保持在candidate状态，直到以下三个事情发生：</p>
-<ul>
-<li>
-<p>it wins the election。该节点赢得选举；</p>
-<ul>
-<li>而一个节点(candidate)赢得选举的情况是它赢得了集群中大多数（&gt;1/2）节点(相同的term)的投票(包含自己的票)。每个节点只能投一票。</li>
-<li>todo The majority rule ensures that at most one candidate can win the election for a particular term</li>
-</ul>
-</li>
-<li>
-<p>another server establishes itself as leader。另外一个节点赢得选举；</p>
-</li>
-<li>
-<p>a period of time goes by with no winner。一段时间过后，没有节点赢得选举；</p>
-</li>
-</ul>
-<h2 id="Log-replication">Log replication</h2>
-<h2 id="Safety">Safety</h2>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> hello </tag>
+            
+            <tag> world </tag>
+            
+            <tag> new </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Hello World</title>
+      <link href="/2022/03/30/hello-world/"/>
+      <url>/2022/03/30/hello-world/</url>
+      
+        <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p><h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p><h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p><h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p><h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>]]></content>
+      
+      
       <categories>
-        <category>分布式</category>
-        <category>raft</category>
+          
+          <category> new </category>
+          
       </categories>
-      <tags>
-        <tag>共识算法</tag>
-        <tag>raft</tag>
-      </tags>
-  </entry>
+      
+      
+        <tags>
+            
+            <tag> hello </tag>
+            
+            <tag> world </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+  
+  
 </search>
