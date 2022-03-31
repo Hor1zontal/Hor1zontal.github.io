@@ -79,18 +79,23 @@
 
 
 
-<meta name="description" content="&lt;%- toc(page.content, { class: ‘post-raft’, list_number: true }) %&gt; 本文基于论文In Search of an Understandable Consensus Algorithm对raft协议进行分析学习 前置知识 分布式存储系统   分布式存储系统，是将数据分散存储在多台独立的设备上。传统的网络存储系统采用集中的存">
+<meta name="description" content="本文基于论文In Search of an Understandable Consensus Algorithm对raft协议进行分析学习 前置知识 分布式存储系统   分布式存储系统，是将数据分散存储在多台独立的设备上。传统的网络存储系统采用集中的存储服务器存放所有数据，存储服务器成为系统性能的瓶颈，也是可靠性和安全性的焦点，不能满足大规模存储应用的需要。分布式网络存储系统采用可扩展的系统结构，">
 <meta property="og:type" content="article">
 <meta property="og:title" content="raft协议的学习">
 <meta property="og:url" content="http://example.com/2022/03/30/raft/index.html">
 <meta property="og:site_name" content="Hor1zontal">
-<meta property="og:description" content="&lt;%- toc(page.content, { class: ‘post-raft’, list_number: true }) %&gt; 本文基于论文In Search of an Understandable Consensus Algorithm对raft协议进行分析学习 前置知识 分布式存储系统   分布式存储系统，是将数据分散存储在多台独立的设备上。传统的网络存储系统采用集中的存">
+<meta property="og:description" content="本文基于论文In Search of an Understandable Consensus Algorithm对raft协议进行分析学习 前置知识 分布式存储系统   分布式存储系统，是将数据分散存储在多台独立的设备上。传统的网络存储系统采用集中的存储服务器存放所有数据，存储服务器成为系统性能的瓶颈，也是可靠性和安全性的焦点，不能满足大规模存储应用的需要。分布式网络存储系统采用可扩展的系统结构，">
 <meta property="og:locale">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301500346.png">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301710546.png">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301720661.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311546086.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311504795.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311538296.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311652938.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311933175.png">
 <meta property="article:published_time" content="2022-03-30T09:58:44.000Z">
-<meta property="article:modified_time" content="2022-03-31T02:44:12.649Z">
+<meta property="article:modified_time" content="2022-03-31T13:59:39.545Z">
 <meta property="article:author" content="Ruotao Peng">
 <meta property="article:tag" content="共识算法">
 <meta property="article:tag" content="raft">
@@ -392,11 +397,7 @@
       
 
       
-        <p>&lt;%- toc(page.content, {<br>
-class: ‘post-raft’,<br>
-list_number: true<br>
-}) %&gt;</p>
-<p>本文基于论文<a target="_blank" rel="noopener" href="https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14">In Search of an Understandable Consensus Algorithm</a>对raft协议进行分析学习</p>
+        <p>本文基于论文<a target="_blank" rel="noopener" href="https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14">In Search of an Understandable Consensus Algorithm</a>对raft协议进行分析学习</p>
 <h1>前置知识</h1>
 <h2 id="分布式存储系统">分布式存储系统</h2>
 <p>  分布式存储系统，是将数据分散存储在多台独立的设备上。传统的网络存储系统采用集中的存储服务器存放所有数据，存储服务器成为系统性能的瓶颈，也是可靠性和安全性的焦点，不能满足大规模存储应用的需要。分布式网络存储系统采用可扩展的系统结构，利用多台存储服务器分担存储负荷，利用位置服务器定位存储信息，它不但提高了系统的可靠性、可用性和存取效率，还易于扩展。</p>
@@ -490,6 +491,10 @@ list_number: true<br>
 <li>AppendEntries RPC：被leader发起复制日志，并提供心跳。</li>
 <li>(第三个RPC，用于在服务器之间传输快照。如果服务器没有及时收到响应，则会重试RPC，并并行发出RPC以获得最佳性能)</li>
 </ul>
+<blockquote>
+<p>复制状态机架构（Replicated state machine architecture）</p>
+</blockquote>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311546086.png" alt=""></p>
 <h2 id="Leader-election">Leader election</h2>
 <p>  一个节点启动，开始是follower，一个节点一直保持follower状态只要它能从leader或者candidate收到有效的RPC请求。</p>
 <p>  leader一段时间给所有的follower发送一个心跳包(AppendEntries RPCs that carry no log entries);如果一个follower在一段时间没有收到RPC请求，则称之为election timeout(选举超时)，然后它就假设系统中没有leader，并且发起一个选举来选择新的leader。</p>
@@ -499,18 +504,111 @@ list_number: true<br>
 <p>it wins the election。该节点赢得选举；</p>
 <ul>
 <li>而一个节点(candidate)赢得选举的情况是它赢得了集群中大多数（&gt;1/2）节点(相同的term)的投票(包含自己的票)。每个节点只能投一票。</li>
-<li>todo The majority rule ensures that at most one candidate can win the election for a particular term</li>
+<li>//todo The majority rule ensures that at most one candidate can win the election for a particular term（候选者知道的信息不能比自己的少）</li>
+<li>first-come-first-served先来先得</li>
 </ul>
 </li>
 <li>
-<p>another server establishes itself as leader。另外一个节点赢得选举；</p>
+<p>another server establishes itself as leader。收到其他自称为leader的AppendEntries RPC，只有当这个leader的term比自己大或者相等，才会承认该leader并进入follower状态，否则继续保持candidate状态。</p>
 </li>
 <li>
-<p>a period of time goes by with no winner。一段时间过后，没有节点赢得选举；</p>
+<p>a period of time goes by with no winner。一段时间过后，没有节点赢得选举，导致这一结果的原因是，如果许多follower同时称为candidate，选票就会被平分，所以就没有candidate获得大多数的选票。当这种情况发生的时候，每个candidate会超时并且重新发起一个新的选举（term+1）来发起RequestVote RPC。然而，如果没有额外的措施，这种情况可能会无限期地重复。所以采用随机选举超时（randomized election timeouts）的方式来确保split vote很少出现并能够被快速解决。</p>
 </li>
 </ul>
 <h2 id="Log-replication">Log replication</h2>
+<p>   一旦一个节点当选leader，它就开始处理客户端的请求（request）。每一个客户端的请求包含着复制状态机的一条待执行的命令（command）。leader将这个指令当作一个新的entry（包含Term ID和command），然后发送AppendEntries RPC告诉其他的节点复制entry。当entry被安全地复制之后，leader应用entry到状态机，并且返回执行的结果给客户端。如果follower宕机，执行偏慢，或者网络丢包，leader将一直发送AppendEntries RPC直到所有的follower都最终存储了所有的log entries。（即跟leader的entries一致）。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311504795.png" alt=""></p>
+<p>Figure6：日志由entries组成，并且被序列化。每一条entry内都含有term ID和command</p>
+<blockquote>
+<p>The leader decides when it is safe to apply a log entry to the state machines; such an entry is called committed.</p>
+</blockquote>
+<p>  leader决定何时安全地apply日志到状态机,这个entry就被称为已提交</p>
+<blockquote>
+<p>A log entry is committed once the leader that created the entry has replicated it on a majority of the servers.</p>
+</blockquote>
+<p>  一个leader创建的entry一旦被复制到大部分的节点上后，这个entry就被称为<em><strong>committed</strong></em>。</p>
+<blockquote>
+<p>Once a follower learns that a log entry is committed, it applies the entry to its local state machine<br>
+一旦follower知道一个entry被committed，它就应用这个entry到本地状态机上。</p>
+</blockquote>
 <h2 id="Safety">Safety</h2>
+<p>衡量一个分布式算法，有许多属性，如</p>
+<ul>
+<li>safety：nothing bad happens,</li>
+<li>liveness： something good eventually happens.</li>
+</ul>
+<p>  在任何系统模型下，都需要满足safety属性，即在任何情况下，系统都不能出现不可逆的错误，也不能向客户端返回错误的内容。比如，raft保证被复制到大多数节点的日志不会被回滚，那么就是safety属性。而raft最终会让所有节点状态一致，这属于liveness属性。<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311538296.png" alt=""></p>
+<h3 id="Election-Safety">Election Safety</h3>
+<p>  选举安全性，即<strong>任意一任期内最多一个leader被选出</strong>。这一点非常重要，在一个复制集中任何时刻只能有一个leader。系统中同时有多余一个leader，被称之为脑裂（brain split），这是非常严重的问题，会导致数据的覆盖丢失。在raft中，两点保证了这个属性：</p>
+<ul>
+<li>一个节点某一任期内最多只能投一票</li>
+<li>只有获得majority投票的节点才能成为leader</li>
+</ul>
+<h3 id="Leader-Append-Only">Leader Append-Only</h3>
+<p>leader从来不覆写和删除entries，只会append新的entries。</p>
+<h3 id="Log-Matching">Log Matching</h3>
+<ul>
+<li>If two entries in different logs have the same index and term, then they store the same command.</li>
+<li>If two entries in different logs have the same index and term, then the logs are identical in all preceding entries.</li>
+</ul>
+<p>  首先，leader在某一term的任一位置只会创建一个log entry，且log entry是append-only。其次，consistency check。leader在AppendEntries中包含最新log entry之前的一个log 的term和index，如果follower在对应的term index找不到日志，那么就会告知leader不一致。<br>
+  在没有异常的情况下，log matching是很容易满足的，但如果出现了node crash，情况就会变得负责。比如下图<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311652938.png" alt=""><br>
+上图的a-f为某个follower可能存在的六种状态</p>
+<ul>
+<li>比leader日志少，如ab</li>
+<li>比leader日志多，如cd</li>
+<li>某些位置比leader多，某些日志比leader少，如ef（多少是针对任期而言的）</li>
+</ul>
+<blockquote>
+<p>In Raft, the leader handles inconsistencies by forcing the followers’ logs to duplicate its own。</p>
+</blockquote>
+<p>在Raft中，当出现了leader与follower不一致的情况，leader通过强制让follower复制logs和自己一样来处理不一致性的问题。</p>
+<p>leader通过维护一个<em>nextIndex</em>数组来记录下一个leader要发送到每个follower的index。初始化为leader最后一个log index加1。</p>
+<p>流程如下</p>
+<blockquote>
+<p>s1 leader 初始化nextIndex[x]为 leader最后一个log index + 1<br>
+s2 AppendEntries里prevLogTerm prevLogIndex来自 logs[nextIndex[x] - 1]<br>
+s3 如果follower判断prevLogIndex位置的log term不等于prevLogTerm，那么返回 False，否则返回True<br>
+s4 leader收到follower的回复，如果返回值是False，则nextIndex[x] -= 1, 跳转到s2. 否则<br>
+s5 同步nextIndex[x]后的<strong>所有log entries</strong>（一次性同步所有的）</p>
+</blockquote>
+<h3 id="leader-completeness">leader completeness</h3>
+<p>leader完整性：如果一个log entry在某个任期被提交（committed），那么这条日志一定会出现在所有更高term的leader的日志里面。这个跟leader election、log replication都有关。</p>
+<ul>
+<li>一个日志被复制到majority节点才算committed</li>
+<li>一个节点得到majority的投票才能成为leader，而节点A给节点B投票的其中一个前提是，B的日志不能比A的日志旧。下面的引文指处了如何判断日志的新旧</li>
+</ul>
+<p>raft与其他协议（Viewstamped Replication、mongodb）不同，raft始终保证leade包含最新的已提交的日志，因此leader不会从follower catchup日志，这也大大简化了系统的复杂度。</p>
+<h3 id="state-machine-safety">state machine safety</h3>
+<p>如果一个节点已经apply一个给定index的log entry给它的状态机，不能有其他节点在相同的index apply不同的log entry。<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311933175.png" alt=""></p>
+<p>  上图是一个较为复杂的情况。在时刻(a), s1是leader，在term2提交的日志只赋值到了s1 s2两个节点就crash了。在时刻（b), s5成为了term 3的leader，日志只赋值到了s5，然后crash。然后在©时刻，s1又成为了term 4的leader，开始赋值日志，于是把term2的日志复制到了s3，此刻，可以看出term2对应的日志已经被复制到了majority，因此是committed，可以被状态机应用。不幸的是，接下来（d）时刻，s1又crash了，s5重新当选，然后将term3的日志复制到所有节点，这就出现了一种奇怪的现象：被复制到大多数节点（或者说可能已经应用）的日志被回滚。</p>
+<p>  究其根本，是因为term4时的leader s1在（C）时刻提交了之前term2任期的日志。为了杜绝这种情况的发生：</p>
+<blockquote>
+<p>Raft never commits log entries from previous terms by counting replicas.<br>
+Only log entries from the leader’s current term are committed by counting replicas; once an entry from the current term has been committed in this way, then all prior entries are committed indirectly because of the Log Matching Property.</p>
+</blockquote>
+<p>  也就是说，某个leader选举成功之后，不会直接提交前任leader时期的日志，而是通过提交当前任期的日志的时候“顺手”把之前的日志也提交了，具体怎么实现了，在log matching部分有详细介绍。那么问题来了，如果leader被选举后没有收到客户端的请求呢，论文中有提到，在任期开始的时候发立即尝试复制、提交一条空的log。</p>
+<blockquote>
+<p>Raft handles this by having each leader commit a blank no-op entry into the log at the start of its term.</p>
+</blockquote>
+<p>  因此，在上图中，不会出现（C）时刻的情况，即term4任期的leader s1不会复制term2的日志到s3。而是如同(e)描述的情况，通过复制-提交 term4的日志顺便提交term2的日志。如果term4的日志提交成功，那么term2的日志也一定提交成功，此时即使s1crash，s5也不会重新当选。</p>
+<h2 id="corner-case">corner case</h2>
+<p>Section 5.4 discusses somesubtleties when applying this rule after leader changes,and it also shows that this definition of commitment is safe.</p>
+<h3 id="stale-leader">stale leader</h3>
+<p>  raft保证Election safety，即一个任期内最多只有一个leader，但在网络分割（network partition）的情况下，可能会出现两个leader，但两个leader所处的任期是不同的。如下图所示</p>
+<h3 id="leader-crash">leader crash</h3>
+<p>  follower的crash处理方式相对简单，leader只要不停的给follower发消息即可。当leader crash的时候，事情就会变得复杂。在<a target="_blank" rel="noopener" href="https://www.cnblogs.com/mindwind/p/5231986.html">这篇文章</a>中，作者就给出了一个更新请求的流程图。</p>
+<h1>总结</h1>
+<p>对raft协议有个简单的了解<a target="_blank" rel="noopener" href="http://thesecretlivesofdata.com/raft/">动画</a></p>
+<h1>References</h1>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xybaby/p/10124083.html#_labelTop">https://www.cnblogs.com/xybaby/p/10124083.html#_labelTop</a><br>
+<a target="_blank" rel="noopener" href="https://www.cnblogs.com/mindwind/p/5231986.html">https://www.cnblogs.com/mindwind/p/5231986.html</a><br>
+<a target="_blank" rel="noopener" href="http://thesecretlivesofdata.com/raft/">http://thesecretlivesofdata.com/raft/</a><br>
+<a target="_blank" rel="noopener" href="https://raft.github.io/">https://raft.github.io/</a><br>
+<a target="_blank" rel="noopener" href="https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14">https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14</a></p>
 
       
     </div>
@@ -699,7 +797,7 @@ list_number: true<br>
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">前置知识</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E5%AD%98%E5%82%A8%E7%B3%BB%E7%BB%9F"><span class="nav-number">1.1.</span> <span class="nav-text">分布式存储系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E7%9A%84%E4%B8%89%E5%A4%A7%E7%89%B9%E6%80%A7CAP"><span class="nav-number">1.2.</span> <span class="nav-text">分布式系统的三大特性CAP</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7raft"><span class="nav-number">1.3.</span> <span class="nav-text">分布式一致性raft</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%EF%BC%9F"><span class="nav-number">1.4.</span> <span class="nav-text">什么是分布式一致性？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8C%E6%A0%B7%E7%9A%84%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F%EF%BC%8C%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%AB%98%E5%B9%B6%E5%8F%91%EF%BC%9F"><span class="nav-number">1.5.</span> <span class="nav-text">同样的执行顺序，分布式系统如何实现高并发？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">Raft协议</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Raft%E5%8D%8F%E8%AE%AE%E6%A6%82%E8%BF%B0"><span class="nav-number">2.1.</span> <span class="nav-text">Raft协议概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Basics"><span class="nav-number">2.2.</span> <span class="nav-text">Basics</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Leader-election"><span class="nav-number">2.3.</span> <span class="nav-text">Leader election</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Log-replication"><span class="nav-number">2.4.</span> <span class="nav-text">Log replication</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Safety"><span class="nav-number">2.5.</span> <span class="nav-text">Safety</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">前置知识</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E5%AD%98%E5%82%A8%E7%B3%BB%E7%BB%9F"><span class="nav-number">1.1.</span> <span class="nav-text">分布式存储系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E7%9A%84%E4%B8%89%E5%A4%A7%E7%89%B9%E6%80%A7CAP"><span class="nav-number">1.2.</span> <span class="nav-text">分布式系统的三大特性CAP</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7raft"><span class="nav-number">1.3.</span> <span class="nav-text">分布式一致性raft</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%EF%BC%9F"><span class="nav-number">1.4.</span> <span class="nav-text">什么是分布式一致性？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8C%E6%A0%B7%E7%9A%84%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F%EF%BC%8C%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%AB%98%E5%B9%B6%E5%8F%91%EF%BC%9F"><span class="nav-number">1.5.</span> <span class="nav-text">同样的执行顺序，分布式系统如何实现高并发？</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">Raft协议</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Raft%E5%8D%8F%E8%AE%AE%E6%A6%82%E8%BF%B0"><span class="nav-number">2.1.</span> <span class="nav-text">Raft协议概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Basics"><span class="nav-number">2.2.</span> <span class="nav-text">Basics</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Leader-election"><span class="nav-number">2.3.</span> <span class="nav-text">Leader election</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Log-replication"><span class="nav-number">2.4.</span> <span class="nav-text">Log replication</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Safety"><span class="nav-number">2.5.</span> <span class="nav-text">Safety</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Election-Safety"><span class="nav-number">2.5.1.</span> <span class="nav-text">Election Safety</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Leader-Append-Only"><span class="nav-number">2.5.2.</span> <span class="nav-text">Leader Append-Only</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Log-Matching"><span class="nav-number">2.5.3.</span> <span class="nav-text">Log Matching</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#leader-completeness"><span class="nav-number">2.5.4.</span> <span class="nav-text">leader completeness</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#state-machine-safety"><span class="nav-number">2.5.5.</span> <span class="nav-text">state machine safety</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#corner-case"><span class="nav-number">2.6.</span> <span class="nav-text">corner case</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#stale-leader"><span class="nav-number">2.6.1.</span> <span class="nav-text">stale leader</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#leader-crash"><span class="nav-number">2.6.2.</span> <span class="nav-text">leader crash</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">References</span></a></li></ol></div>
             
 
           </div>
