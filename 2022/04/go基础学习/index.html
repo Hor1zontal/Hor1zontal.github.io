@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.1.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"hor1zontal.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="h1{ background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%); color: #000; } h2{ background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%); }">
+<meta property="og:type" content="article">
+<meta property="og:title" content="go基础学习">
+<meta property="og:url" content="http://hor1zontal.github.io/2022/04/go%E5%9F%BA%E7%A1%80%E5%AD%A6%E4%B9%A0/index.html">
+<meta property="og:site_name" content="Hor1zontal">
+<meta property="og:description" content="h1{ background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%); color: #000; } h2{ background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%); }">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204110922500.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204110952265.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111024022.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111025720.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111025554.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111436505.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111436645.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111437596.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111441204.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111443886.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111444468.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111444398.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111445449.png">
+<meta property="article:published_time" content="2022-04-11T01:04:03.000Z">
+<meta property="article:modified_time" content="2022-04-25T03:02:33.768Z">
+<meta property="article:author" content="RT.L1on">
+<meta property="article:tag" content="go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204110922500.png">
+
+<link rel="canonical" href="http://hor1zontal.github.io/2022/04/go%E5%9F%BA%E7%A1%80%E5%AD%A6%E4%B9%A0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>go基础学习 | Hor1zontal</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hor1zontal</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">骐骥一跃,不能十步;驽马十驾,功在不舍。</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">12</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">8</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/Hor1zontal" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://hor1zontal.github.io/2022/04/go%E5%9F%BA%E7%A1%80%E5%AD%A6%E4%B9%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="RT.L1on">
+      <meta itemprop="description" content="1111">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hor1zontal">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          go基础学习
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-04-11 09:04:03" itemprop="dateCreated datePublished" datetime="2022-04-11T09:04:03+08:00">2022-04-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-04-25 11:02:33" itemprop="dateModified" datetime="2022-04-25T11:02:33+08:00">2022-04-25</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/go/" itemprop="url" rel="index"><span itemprop="name">go</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <style>
+h1{
+background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);
+color: #000;
+}
+h2{
+background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
+}
+</style>
+<span id="more"></span>
+<h1>系统内存管理</h1>
+<h2 id="操作系统内存">操作系统内存</h2>
+<p>操作系统已经将一整块内存划分好了区域，每个区域用来做不同的事情。如图：<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204110922500.png" alt=""></p>
+<ul>
+<li>text 段：存储程序的二进制指令，及其他的一些静态内容</li>
+<li>data 段：用来存储已被初始化的全局变量。比如常量（const）。</li>
+<li>bss 段：用来存放未被初始化的全局变量。和 .data 段一样都属于静态分配，在这里面的变量数据在编译就确定了大小，不释放。</li>
+<li>stack 段：栈空间，主要用于函数调用时存储临时变量的。这部分的内存是自动分配自动释放的。</li>
+<li>heap 段：堆空间，用于动态分配，C 语言中 malloc 和 free 操作的内存就在这里；Go 语言主要靠 GC 自动管理这部分。</li>
+</ul>
+<p>  其实现在的操作系统，进程内部的内存区域没这么简单，要比这复杂多了，比如内核区域，共享库区域。因为我们不是要真的开发一套操作系统，细节可以忽略。这里只需要记住堆空间和栈空间即可。</p>
+<ul>
+<li>栈空间是通过压栈出栈方式自动分配释放的，由系统管理，使用起来高效无感知。</li>
+<li>堆空间是用以动态分配的，由程序自己管理分配和释放。Go语言虽然可以帮我们自动管理分配和释放，但是代价也是很高的。</li>
+</ul>
+<h2 id="goroutine调度器">goroutine调度器</h2>
+<p>当你的 Go 程序启动之初，它会被分配一个逻辑处理器§，这是为这台机器定义的一个虚拟 CPU Core。如果你的 CPU 的每个核带有多个hardware thread（Hyper-Threading），每一个 hardware 都会对应 Go 语言中的一个虚拟 core。<br>
+<code>NumCPU()</code>函数返回的是当前程序逻辑上可用的cpu，</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;fmt&quot;</span></span><br><span class="line">    <span class="string">&quot;runtime&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// NumCPU returns the number of logical</span></span><br><span class="line">    <span class="comment">// CPUs usable by the current process.</span></span><br><span class="line">    fmt.Println(runtime.NumCPU())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当我在自己的机器上运行这个程序，我的电脑cpu是i5-11400H，为6核12线程，NumCPU() 函数的结果是 12。我机器上运行的任何一个 Go 程序均会有 12 个 虚拟 core（P） 可以使用。</p>
+<p>每一个 P 会被分配一个系统线程(M)。这个 M 会被操作系统调度，操作系统仍然负责将线程(M)放到一个 CPU Core 上去执行。这意味着当我在我的机器上运行程序，我有 8 个线程可以使用去执行我的操作，每个线程都被绑定上了一个独立的 P。</p>
+<p>每一个 Go 程序也被赋予了一个初始的 goroutine(G)，它是 Go 程序的执行路径。一个 Goroutine 本质上就是一个 Coroutine(协程)，只不过因为在 Go 语言里，就改了个名字。你可以认为 Goroutine 是应用级别的线程，它在很多方面跟系统的线程是相似的。就像系统线程不断的在一个 core 上做上下文切换一样，Goroutine 不断的在 M 上做上下文切换。</p>
+<p>最后一个难题就是运行队列。在 Go 调度器中有 2 个不同的执行队列：全局队列（Global Run Queue, 简称 GRQ）和本地队列（Local Run Queue，简称 LRQ）。每一个 P 都会有一个 LRQ 来管理分配给 P 上的 Goroutine。这些 Goroutine 轮流被交付给 M 执行。GRQ 是用来保存还没有被分配到 P 的 Goroutine。会有一个逻辑将 Goroutine 从 GRQ 上移动到 LRQ 上，这个我们后面讨论。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204110952265.png" alt=""></p>
+<ul>
+<li>P:虚拟Core</li>
+<li>M:系统Thread（每一个 P 会被分配一个系统线程）</li>
+<li>G:goroutine</li>
+</ul>
+<h2 id="异步系统调用">异步系统调用</h2>
+<p>如果你的操作系统有能力异步处理系统调用，那么 network poller 可以更有效的来完成系统调用。这方面在 kqueue(MacOS)，epoll(Linux) 或 iocp(Windows) 中都有不同方式的实现。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111024022.png" alt=""></p>
+<p>上图展示了我们基础的调度轮廓。G1 在 M 上执行，同事其他 3 个 Goroutine 在 LRQ 中等待 M。现在 network poller 没有事情可做。<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111025720.png" alt=""></p>
+<p>上图中，G1 要执行一个网络调用，所以 G1 被移动到了 network poller 上，等待完成网络系统调用。一旦 G1 被移到了 network poller 中，M 现在就可以去执行 LRQ 中其他的 Goroutine 了。在这里例子中，G2 被切换到了 M 上。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111025554.png" alt=""></p>
+<p>异步网络系统调用完成后，G1 又被放回到了 P 的 LRQ中。一旦 G1 可以被切换到 M 上，处理网络请求结果相关的 Go 代码又能被执行了。这里最大的优势在于，执行网络系统调用，不需要额外的 M。network poller 有一个系统线程处理，它可以高效的处理事件的轮询。</p>
+<h2 id="同步系统调用">同步系统调用</h2>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111436505.png" alt=""></p>
+<p>上图展示了我们基本的调度图，但是这次 G1 将要执行一个同步的系统调用，这将会阻塞 M1。<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111436645.png" alt=""></p>
+<p>调度器有能力认出 G1 导致 M 阻塞了。这时，调度器会将 M 从 P 上分离出去，G1 依旧附在 M 上被一起分离了。然后调度器获取一个 M2 为 P 服务。此时，G2 会被选中切换到 M2 上执行。如果 M2 因为以前的切换操作已经存在了，那么这次转换就要比重新创建一个 M 要快。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111437596.png" alt=""></p>
+<p>上图中，由 G1 执行的阻塞式系统调用完成了。此时，G1 可以被放回到 LRQ 并等待被 P 在此调度。M1 会放在一边等待以后使用，以防止这种情况在此发生。如果空闲 M 很多，调度器会主动让其退出。</p>
+<h2 id="工作窃取">工作窃取</h2>
+<p>调度器的另一部分就是，它是一个工作窃取机制。这保证在一些场景下能保证高效的调度。</p>
+<p>让我们来看一个例子。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111441204.png" alt=""></p>
+<p>上图中，我们有一个多线程的 Go 程序带有 2 个 P，每个 P 都有 4 个 Goroutine 要执行，还有一个 Goroutine 在 GRQ 中。如果其中一个 P 很快的把所有的 Goroutine 都执行完了，会发生什么呢？</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111443886.png" alt=""></p>
+<p>P1 没有 Goroutine 可以执行了，但是仍然有 Goroutine 是处于就绪态的等待被执行，P2 的 LRQ 和 GRQ 中都有。这是 P1 就需要窃取工作了。工作窃取的逻辑如下。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">runtime.schedule() &#123;</span><br><span class="line">    <span class="comment">// only 1/61 of the time, check the global runnable queue for a G.</span></span><br><span class="line">    <span class="comment">// if not found, check the local queue.</span></span><br><span class="line">    <span class="comment">// if not found,</span></span><br><span class="line">    <span class="comment">//     try to steal from other Ps.</span></span><br><span class="line">    <span class="comment">//     if not, check the global runnable queue.</span></span><br><span class="line">    <span class="comment">//     if not found, poll network.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>所以基于上述注释描述的逻辑，P1 需要检查 P2 的 LRQ 中的 Goroutine 列表，把其中一半的 Goroutine 拿到自己的队列中。</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111444468.png" alt=""></p>
+<p>上图中，P2 里的一半的 Goroutine 被交给了 P1 执行。</p>
+<p>如果 P2 执行完毕了所有的 Goroutine，同时 P1 的 LRQ 中也没有可执行的 Goroutine 了，怎么办呢？</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111444398.png" alt=""></p>
+<p>P2 完成了它的所有工作，现在需要窃取一些。首先它会检查一下 P1 的 LRQ，但是没有 Goroutine 可偷。下一步它会检查 GRQ。会找到 G9.</p>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111445449.png" alt=""></p>
+<p>P2 从 GRQ 上偷窃了 G9，并开始执行。这一切工作窃取的好处就在于，它使 M 保持繁忙而不是空闲。这方面还有一些其他的好处，JBD 在它的博客中解释的很好。</p>
+<h1>逃逸分析</h1>
+<h2 id="关于堆栈">关于堆栈</h2>
+<p>Go 语言虽然在内存管理方面降低了编程门槛，即使你不了解堆栈也能正常开发，但如果你要在性能上较真的话，还是要掌握这些基础知识。</p>
+<p>这里不对堆内存和栈内存的区别做太多阐述。简单来说就是，栈分配廉价，堆分配昂贵。栈空间会随着一个函数的结束自动释放，堆空间需要 GC 模块不断的跟踪扫描回收。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">stack</span><span class="params">()</span></span> <span class="type">int</span> &#123; </span><br><span class="line">    <span class="comment">// 变量 i 会在栈上分配</span></span><br><span class="line">     i := <span class="number">10</span></span><br><span class="line">     <span class="keyword">return</span> i</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">heap</span><span class="params">()</span></span> *<span class="type">int</span> &#123;</span><br><span class="line">    <span class="comment">// 变量 j 会在堆上分配</span></span><br><span class="line">    j := <span class="number">10</span></span><br><span class="line">    <span class="keyword">return</span> &amp;j</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>stack 函数中的变量 i 在函数退出会自动释放；而 heap 函数返回的是对变量i的引用，也就是说 heap()退出后，表示变量 i 还要能被访问，它会自动被分配到堆空间上。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">// go build --gcflags &#x27;-l&#x27; test.go</span><br><span class="line">// go tool objdump ./test</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">TEXT main.stack(SB) /tmp/test.go</span><br><span class="line">  test.go:7     0x487240        48c74424080a000000  MOVQ $0xa, 0x8(SP)  </span><br><span class="line">  test.go:7     0x487249        c3          RET         </span><br><span class="line"></span><br><span class="line">TEXT main.heap(SB) /tmp/test.go</span><br><span class="line">  test.go:9     0x487250        64488b0c25f8ffffff  MOVQ FS:0xfffffff8, CX          </span><br><span class="line">  test.go:9     0x487259        483b6110        CMPQ 0x10(CX), SP           </span><br><span class="line">  test.go:9     0x48725d        7639            JBE 0x487298                </span><br><span class="line">  test.go:9     0x48725f        4883ec18        SUBQ $0x18, SP              </span><br><span class="line">  test.go:9     0x487263        48896c2410      MOVQ BP, 0x10(SP)           </span><br><span class="line">  test.go:9     0x487268        488d6c2410      LEAQ 0x10(SP), BP           </span><br><span class="line">  test.go:10        0x48726d        488d05ac090100      LEAQ 0x109ac(IP), AX            </span><br><span class="line">  test.go:10        0x487274        48890424        MOVQ AX, 0(SP)              </span><br><span class="line">  test.go:10        0x487278        e8f33df8ff      CALL runtime.newobject(SB)      </span><br><span class="line">  test.go:10        0x48727d        488b442408      MOVQ 0x8(SP), AX            </span><br><span class="line">  test.go:10        0x487282        48c7000a000000      MOVQ $0xa, 0(AX)            </span><br><span class="line">  test.go:11        0x487289        4889442420      MOVQ AX, 0x20(SP)           </span><br><span class="line">  test.go:11        0x48728e        488b6c2410      MOVQ 0x10(SP), BP           </span><br><span class="line">  test.go:11        0x487293        4883c418        ADDQ $0x18, SP              </span><br><span class="line">  test.go:11        0x487297        c3          RET                 </span><br><span class="line">  test.go:9     0x487298        e8a380fcff      CALL runtime.morestack_noctxt(SB)   </span><br><span class="line">  test.go:9     0x48729d        ebb1            JMP main.heap(SB)           </span><br><span class="line">// ...</span><br><span class="line"></span><br><span class="line">TEXT runtime.newobject(SB) /usr/share/go/src/runtime/malloc.go</span><br><span class="line">  malloc.go:1067    0x40b070        64488b0c25f8ffffff  MOVQ FS:0xfffffff8, CX          </span><br><span class="line">  malloc.go:1067    0x40b079        483b6110        CMPQ 0x10(CX), SP           </span><br><span class="line">  malloc.go:1067    0x40b07d        763d            JBE 0x40b0bc                </span><br><span class="line">  malloc.go:1067    0x40b07f        4883ec28        SUBQ $0x28, SP              </span><br><span class="line">  malloc.go:1067    0x40b083        48896c2420      MOVQ BP, 0x20(SP)           </span><br><span class="line">  malloc.go:1067    0x40b088        488d6c2420      LEAQ 0x20(SP), BP           </span><br><span class="line">  malloc.go:1068    0x40b08d        488b442430      MOVQ 0x30(SP), AX           </span><br><span class="line">  malloc.go:1068    0x40b092        488b08          MOVQ 0(AX), CX              </span><br><span class="line">  malloc.go:1068    0x40b095        48890c24        MOVQ CX, 0(SP)              </span><br><span class="line">  malloc.go:1068    0x40b099        4889442408      MOVQ AX, 0x8(SP)            </span><br><span class="line">  malloc.go:1068    0x40b09e        c644241001      MOVB $0x1, 0x10(SP)         </span><br><span class="line">  malloc.go:1068    0x40b0a3        e888f4ffff      CALL runtime.mallocgc(SB)       </span><br><span class="line">  malloc.go:1068    0x40b0a8        488b442418      MOVQ 0x18(SP), AX           </span><br><span class="line">  malloc.go:1068    0x40b0ad        4889442438      MOVQ AX, 0x38(SP)           </span><br><span class="line">  malloc.go:1068    0x40b0b2        488b6c2420      MOVQ 0x20(SP), BP           </span><br><span class="line">  malloc.go:1068    0x40b0b7        4883c428        ADDQ $0x28, SP              </span><br><span class="line">  malloc.go:1068    0x40b0bb        c3          RET                 </span><br><span class="line">  malloc.go:1067    0x40b0bc        e87f420400      CALL runtime.morestack_noctxt(SB)   </span><br><span class="line">  malloc.go:1067    0x40b0c1        ebad            JMP runtime.newobject(SB)       </span><br></pre></td></tr></table></figure>
+<p>逻辑的复杂度不言而喻，上面的汇编中可看到， <code>heap()</code> 函数调用了 <code>runtime.newobject()</code> 方法，它会调用 <code>mallocgc</code> 方法从 <code>mcache</code> 上申请内存，申请的内部逻辑前面文章已经讲述过。堆内存分配不仅分配上逻辑比栈空间分配复杂，它最致命的是会带来很大的管理成本，Go 语言要消耗很多的计算资源对其进行标记回收（也就是 GC 成本）。</p>
+<blockquote>
+<p>不要以为使用了堆内存就一定会导致性能低下，使用栈内存会带来性能优势。因为实际项目中，系统的性能瓶颈一般都不会出现在内存分配上。千万不要盲目优化，找到系统瓶颈，用数据驱动优化。</p>
+</blockquote>
+<h2 id="逃逸分析">逃逸分析</h2>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/go/" rel="tag"># go</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/04/lyapunov/" rel="prev" title="lyapunov">
+      <i class="fa fa-chevron-left"></i> lyapunov
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/04/KubeEdge%E5%AD%A6%E4%B9%A0/" rel="next" title="KubeEdge学习">
+      KubeEdge学习 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">系统内存管理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%86%85%E5%AD%98"><span class="nav-number">1.1.</span> <span class="nav-text">操作系统内存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#goroutine%E8%B0%83%E5%BA%A6%E5%99%A8"><span class="nav-number">1.2.</span> <span class="nav-text">goroutine调度器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%82%E6%AD%A5%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8"><span class="nav-number">1.3.</span> <span class="nav-text">异步系统调用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8C%E6%AD%A5%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8"><span class="nav-number">1.4.</span> <span class="nav-text">同步系统调用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A5%E4%BD%9C%E7%AA%83%E5%8F%96"><span class="nav-number">1.5.</span> <span class="nav-text">工作窃取</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">逃逸分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E4%BA%8E%E5%A0%86%E6%A0%88"><span class="nav-number">2.1.</span> <span class="nav-text">关于堆栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%83%E9%80%B8%E5%88%86%E6%9E%90"><span class="nav-number">2.2.</span> <span class="nav-text">逃逸分析</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="RT.L1on"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">RT.L1on</p>
+  <div class="site-description" itemprop="description">1111</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Hor1zontal" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Hor1zontal" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">RT.L1on</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

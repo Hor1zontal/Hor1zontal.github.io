@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.1.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"hor1zontal.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="h1{     background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);     color: #000; } h2{     background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%); }   本文介绍了如何ubuntu使用kubectl、kubelet、">
+<meta property="og:type" content="article">
+<meta property="og:title" content="k8s安装">
+<meta property="og:url" content="http://hor1zontal.github.io/2022/04/k8s%E5%AE%89%E8%A3%85/index.html">
+<meta property="og:site_name" content="Hor1zontal">
+<meta property="og:description" content="h1{     background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);     color: #000; } h2{     background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%); }   本文介绍了如何ubuntu使用kubectl、kubelet、">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204270944640.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271445417.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271452387.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271454061.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271529921.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271524353.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271618605.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271527114.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271556072.png">
+<meta property="article:published_time" content="2022-04-27T01:39:49.000Z">
+<meta property="article:modified_time" content="2022-04-27T08:24:22.808Z">
+<meta property="article:author" content="RT.L1on">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="Kubernetes">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204270944640.png">
+
+<link rel="canonical" href="http://hor1zontal.github.io/2022/04/k8s%E5%AE%89%E8%A3%85/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>k8s安装 | Hor1zontal</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Hor1zontal</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">骐骥一跃,不能十步;驽马十驾,功在不舍。</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">12</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">8</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">8</span></a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/Hor1zontal" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://hor1zontal.github.io/2022/04/k8s%E5%AE%89%E8%A3%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="RT.L1on">
+      <meta itemprop="description" content="1111">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hor1zontal">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          k8s安装
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-04-27 09:39:49 / 修改时间：16:24:22" itemprop="dateCreated datePublished" datetime="2022-04-27T09:39:49+08:00">2022-04-27</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/k8s/" itemprop="url" rel="index"><span itemprop="name">k8s</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <style>
+h1{
+    background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);
+    color: #000;
+}
+h2{
+    background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
+}
+</style>
+<blockquote>
+<p>本文介绍了如何ubuntu使用kubectl、kubelet、kubeadm、docker搭建k8s集群</p>
+</blockquote>
+<span id="more"></span> 
+<h1>安装环境及配置</h1>
+<h2 id="实验环境">实验环境</h2>
+<ul>
+<li>ubuntu-18.04.6-live-server-amd64</li>
+<li>VMware® Workstation 16 Pro</li>
+</ul>
+<h2 id="虚拟机设置">虚拟机设置</h2>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204270944640.png" alt=""></p>
+<ul>
+<li>各节点的ip地址<br>
+<code>k8s-server1:192.168.220.131</code>//master节点<br>
+<code>k8s-server2:192.168.220.132</code><br>
+<code>k8s-server3:192.168.220.133</code></li>
+</ul>
+<h2 id="tips"><em>tips</em></h2>
+<p>本实验中主机名应设置应遵从DNS的解析规则的，要不然后续安装会报以下错误。</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="http://nodeRegistration.name">nodeRegistration.name</a>: Invalid value: “k8s_server1”: a DNS-1123 subdomain must consist of lower case alphanumeric characters, ‘-’ or ‘.’, and must start and end with an alphanumeric character (e.g. ‘<a target="_blank" rel="noopener" href="http://example.com">example.com</a>’, regex used for validation is ‘<a href="%5B-a-z0-9%5D*%5Ba-z0-9%5D">a-z0-9</a>?(.<a href="%5B-a-z0-9%5D*%5Ba-z0-9%5D">a-z0-9</a>?)*’)</p>
+</blockquote>
+<p><em><strong>reason：</strong></em><br>
+hostname 和 DNS 的解析规则不匹配导致报错,原因是 hostname 和 DNS 的解析规则不匹配， 不能有除<code>-</code>和<code>.</code>之外的特殊字符存在。注意是主机名hostname，不可有<code>-</code>或者<code>.</code>。</p>
+<p><em><strong>solution：</strong></em><br>
+执行<code>hostname</code>命令查看hostname</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hostname</span><br><span class="line">k8s_server1</span><br></pre></td></tr></table></figure>
+<p>执行<code>hostnamectl set-hostname &lt;主机名&gt;</code>命令更改主机名，&lt;主机名&gt;可自定义,例如:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostnamectl set-hostname k8s-server1</span><br></pre></td></tr></table></figure>
+<h1>k8s部署环境准备</h1>
+<h2 id="关闭防火墙">关闭防火墙</h2>
+<pre><code><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systemctl  stop  firewalld</span><br><span class="line">systemctl  disable  firewalld</span><br></pre></td></tr></table></figure>
+</code></pre>
+<h2 id="关闭虚拟内存swap">关闭虚拟内存swap</h2>
+  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">暂时关闭</span></span><br><span class="line">sudo swapoff -a</span><br></pre></td></tr></table></figure>
+  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">永久关闭(注释掉/etc/fstab文件中的swap行)</span></span><br><span class="line">sed  -ri  &#x27;s/.*swap.*/#&amp;/&#x27;  /etc/fstab</span><br></pre></td></tr></table></figure>
+<h2 id="在master节点添加hosts">在master节点添加hosts</h2>
+  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">编辑hosts文件，将所有节点的ip和主机名一一对应</span></span><br><span class="line">cat &gt;&gt; /etc/hosts &lt;&lt; EOF</span><br><span class="line">192.168.220.131   k8s-server1</span><br><span class="line">192.168.220.132   k8s-server2</span><br><span class="line">192.168.220.133   k8s-server3</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+<p>==注：== 此处<code>cat &gt;&gt; xxx &lt;&lt; EOF</code>与后面的<code>cat &gt; xxx &lt;&lt; EOF</code>的区别在于，前者是在原文件末尾加上新内容，后者则是新建一个xxx文件。</p>
+<h2 id="设置网桥参数">设置网桥参数</h2>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">将桥接的IPv4流量传递到iptables的链</span></span><br><span class="line">cat &gt; /etc/sysctl.d/k8s.conf &lt;&lt; EOF</span><br><span class="line">net.bridge.bridge-nf-call-ip6tables = 1</span><br><span class="line">net.bridge.bridge-nf-call-iptables = 1</span><br><span class="line">EOF</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">生效</span></span><br><span class="line">sysctl  --system  </span><br></pre></td></tr></table></figure>
+<h2 id="时间同步">时间同步</h2>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">apt install ntpdate  -y</span><br><span class="line">ntpdate time.windows.com</span><br></pre></td></tr></table></figure>
+<h1>k8s安装过程</h1>
+<p><strong>所有服务器节点安装 docker、kubeadm、kubelet、dubectl</strong><br>
+==//todo:后续要学习这几个软件各自的作用==</p>
+<h2 id="安装docker">安装docker</h2>
+<p>安装docker</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update</span><br><span class="line"></span><br><span class="line">sudo apt-get install \</span><br><span class="line">    apt-transport-https \</span><br><span class="line">    ca-certificates \</span><br><span class="line">    curl \</span><br><span class="line">    gnupg-agent \</span><br><span class="line">    software-properties-common  -y</span><br><span class="line"></span><br><span class="line">curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -</span><br><span class="line"></span><br><span class="line">sudo add-apt-repository \</span><br><span class="line">   &quot;deb [arch=amd64] https://download.docker.com/linux/ubuntu \</span><br><span class="line"><span class="meta prompt_">   $</span><span class="language-bash">(lsb_release -cs) \</span></span><br><span class="line"><span class="language-bash">   stable<span class="string">&quot;</span></span></span><br></pre></td></tr></table></figure>
+<p>再更新一下，添加docker镜像源，阿里的没配置账户用不了，这里用的网易镜像源</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">apt-get update</span><br><span class="line"></span><br><span class="line">mkdir /etc/docker</span><br><span class="line">cat &gt; /etc/docker/daemon.json &lt;&lt; EOF</span><br><span class="line">&#123;</span><br><span class="line"> &quot;registry-mirrors&quot;: [</span><br><span class="line">     &quot;http://hub-mirror.c.163.com&quot;,</span><br><span class="line">     &quot;https://docker.mirrors.ustc.edu.cn&quot;</span><br><span class="line"> ],</span><br><span class="line"> &quot;exec-opts&quot;: [&quot;native.cgroupdriver=systemd&quot;]</span><br><span class="line">&#125;</span><br><span class="line">EOF</span><br><span class="line"></span><br><span class="line">sudo apt-get install docker-ce docker-ce-cli containerd.io  -y</span><br></pre></td></tr></table></figure>
+<p>重启docker</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl restart docker</span><br></pre></td></tr></table></figure>
+<h2 id="安装kubeadm、kubelet、kubectl">安装kubeadm、kubelet、kubectl</h2>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">使得 apt 支持 ssl 传输</span></span><br><span class="line">apt-get update &amp;&amp; apt-get install -y apt-transport-https</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">下载 gpg 密钥</span></span><br><span class="line">curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add - </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">添加 k8s 镜像源</span></span><br><span class="line">cat &gt; /etc/apt/sources.list.d/kubernetes.list &lt;&lt; EOF </span><br><span class="line">deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main</span><br><span class="line">EOF</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">更新源列表</span></span><br><span class="line">apt-get update</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">下载 kubectl，kubeadm以及 kubelet</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">（由于后续需要安装KubeEdge，KubeEdge支持的最新版本的k8s是1.22.0）</span></span><br><span class="line">apt-get install -y kubelet=1.22.0-00 kubeadm=1.22.0-00 kubectl=1.22.0-00</span><br></pre></td></tr></table></figure>
+<h2 id="启动各个节点">启动各个节点</h2>
+<ol>
+<li>
+<p>通过kubeadm init启动master节点</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kubeadm init \</span><br><span class="line">--apiserver-advertise-address=192.168.220.131 \</span><br><span class="line">--image-repository registry.aliyuncs.com/google_containers \</span><br><span class="line">--kubernetes-version v1.22.0 \</span><br><span class="line">--service-cidr=10.96.0.0/12 \</span><br><span class="line">--pod-network-cidr=10.244.0.0/16</span><br></pre></td></tr></table></figure>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271445417.png" alt=""></p>
+<blockquote>
+<p><em>note:</em> service-cidr的选取和PodCIDR及本机网络不能有重叠或者冲突，一般可以选择一个本机网络和PodCIDR都没有用到的私网地址段，比如PodCIDR使用10.244.0.0/16，那么service-cidr可以选择10.96.0.0/12，网络无重叠冲突即可。</p>
+</blockquote>
+</li>
+<li>
+<p>接下来在master节点上执行</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">run the following as a regular user</span></span><br><span class="line">mkdir -p $HOME/.kube</span><br><span class="line">cp -i /etc/kubernetes/admin.conf $HOME/.kube/config</span><br><span class="line">chown $(id -u):$(id -g) $HOME/.kube/config</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="keyword">if</span> you are the root user, you can run:</span></span><br><span class="line">export KUBECONFIG=/etc/kubernetes/admin.conf</span><br></pre></td></tr></table></figure>
+<p><code>kubectl get nodes</code>：查看节点状态<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271452387.png" alt=""></p>
+</li>
+<li>
+<p>node加入集群<br>
+向集群添加新节点，执行的命令就是第一步<code>kubeadm init</code>最后输出的<code>kubeadm join</code>命令<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271454061.png" alt=""></p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">eg.k8s-server2作为一个node节点运行kubeadm <span class="built_in">join</span>命令</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">（要保证node节点的前置环境也装好了）</span></span><br><span class="line">kubeadm join 192.168.220.131:6443 --token lmnc8j.i5vke858hfo9pgka \</span><br><span class="line">    --discovery-token-ca-cert-hash sha256:70a2c8f5fbb50ce24caad2c04dfcf971e1ca5aa437765fd6b1b15bfc8d9cd563</span><br></pre></td></tr></table></figure>
+<p>加入集群成功：<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271529921.png" alt=""></p>
+<p>回到master节点，运行<code>kubectl get nodes</code>查看节点状态<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271524353.png" alt=""></p>
+</li>
+<li>
+<p>同理将k8s-server3加入集群<br>
+回到master节点运行<code>kubectl get nodes</code>查看节点状态，等一会儿，直到Status变为Ready，则server3成功加入集群<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271618605.png" alt=""></p>
+</li>
+</ol>
+<h2 id="master部署网络插件">master部署网络插件</h2>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">下载kube-flannel.yml文件（可能要多试几次）</span></span><br><span class="line">wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">应用kube-flannel.yml文件得到运行时容器</span></span><br><span class="line">kubectl apply -f kube-flannel.yml</span><br></pre></td></tr></table></figure>
+<p>运行结果：<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271527114.png" alt=""></p>
+<p><code>kubectl get pods -n kube-system</code>：查看运行时容器pod<br>
+<code>kubectl get nodes</code>：查看节点状态<br>
+当STATUS显示为Ready时，则k8s环境就搭建好了：<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271556072.png" alt=""></p>
+<h2 id="tips-2"><em>tips</em></h2>
+<p>如果版本安装的有问题，可能会有以下报错：</p>
+<blockquote>
+<p>[ERROR KubeletVersion]: the kubelet version is higher than the control plane version. This is not a supported version skew and may lead to a malfunctional cluster</p>
+</blockquote>
+<p><em><strong>reason：</strong></em><br>
+  如果直接使用命令apt-get install kubeadm（kubelet、kubectl）下载kubeadm(或者kubelet、kubectl)，那么下载的会是最新版本的kubeadm。<br>
+  此时，如果想要部署一个1.22.0版本的k8s，那么，使用初始化集群命令时就会报错，提示此kubeadm版本只能部署高版本的k8s，而不能部署低版本的k8s.</p>
+<p><em><strong>solution：</strong></em><br>
+  如果知道的比较晚，已经下载安装了kubeadm，该如何挽救呢？（这里一kubeadm为例,kubelet和kubectl同理）</p>
+<ol>
+<li>首先查看kubeadm版本： <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-cache madison kubelet</span><br></pre></td></tr></table></figure>
+笔者查看的时候最新版本是1.23.6-00，不写版本直接下载的应该就是这个版本。</li>
+<li>卸载kubelet <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">删除软件及其配置文件</span></span><br><span class="line">apt-get --purge remove kubelet</span><br></pre></td></tr></table></figure>
+</li>
+<li>重新安装制定版本的kubelet <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-get install kubelet=1.22.0-00</span><br></pre></td></tr></table></figure></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/go/" rel="tag"># go</a>
+              <a href="/tags/Kubernetes/" rel="tag"># Kubernetes</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/04/KubeEdge%E5%AD%A6%E4%B9%A0/" rel="prev" title="KubeEdge学习">
+      <i class="fa fa-chevron-left"></i> KubeEdge学习
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">安装环境及配置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E7%8E%AF%E5%A2%83"><span class="nav-number">1.1.</span> <span class="nav-text">实验环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F%E6%9C%BA%E8%AE%BE%E7%BD%AE"><span class="nav-number">1.2.</span> <span class="nav-text">虚拟机设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#tips"><span class="nav-number">1.3.</span> <span class="nav-text">tips</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">k8s部署环境准备</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%97%AD%E9%98%B2%E7%81%AB%E5%A2%99"><span class="nav-number">2.1.</span> <span class="nav-text">关闭防火墙</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%97%AD%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98swap"><span class="nav-number">2.2.</span> <span class="nav-text">关闭虚拟内存swap</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%A8master%E8%8A%82%E7%82%B9%E6%B7%BB%E5%8A%A0hosts"><span class="nav-number">2.3.</span> <span class="nav-text">在master节点添加hosts</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BE%E7%BD%AE%E7%BD%91%E6%A1%A5%E5%8F%82%E6%95%B0"><span class="nav-number">2.4.</span> <span class="nav-text">设置网桥参数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E5%90%8C%E6%AD%A5"><span class="nav-number">2.5.</span> <span class="nav-text">时间同步</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">k8s安装过程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85docker"><span class="nav-number">3.1.</span> <span class="nav-text">安装docker</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85kubeadm%E3%80%81kubelet%E3%80%81kubectl"><span class="nav-number">3.2.</span> <span class="nav-text">安装kubeadm、kubelet、kubectl</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%AF%E5%8A%A8%E5%90%84%E4%B8%AA%E8%8A%82%E7%82%B9"><span class="nav-number">3.3.</span> <span class="nav-text">启动各个节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#master%E9%83%A8%E7%BD%B2%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6"><span class="nav-number">3.4.</span> <span class="nav-text">master部署网络插件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#tips-2"><span class="nav-number">3.5.</span> <span class="nav-text">tips</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="RT.L1on"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">RT.L1on</p>
+  <div class="site-description" itemprop="description">1111</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/Hor1zontal" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;Hor1zontal" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">RT.L1on</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
