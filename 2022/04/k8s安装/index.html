@@ -20,12 +20,12 @@
     var CONFIG = {"hostname":"hor1zontal.github.io","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="h1{     background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);     color: #000; } h2{     background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%); }   本文介绍了如何ubuntu使用kubectl、kubelet、">
+  <meta name="description" content="h1{     background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);     color: #000; } h2{     background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%); }   本文介绍了如何在ubuntu环境下使用kubectl、kube">
 <meta property="og:type" content="article">
 <meta property="og:title" content="k8s安装">
 <meta property="og:url" content="http://hor1zontal.github.io/2022/04/k8s%E5%AE%89%E8%A3%85/index.html">
 <meta property="og:site_name" content="Hor1zontal">
-<meta property="og:description" content="h1{     background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);     color: #000; } h2{     background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%); }   本文介绍了如何ubuntu使用kubectl、kubelet、">
+<meta property="og:description" content="h1{     background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);     color: #000; } h2{     background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%); }   本文介绍了如何在ubuntu环境下使用kubectl、kube">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204270944640.png">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271445417.png">
@@ -36,8 +36,12 @@
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271618605.png">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271527114.png">
 <meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271556072.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281100264.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281118121.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281118584.png">
+<meta property="og:image" content="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281120356.png">
 <meta property="article:published_time" content="2022-04-27T01:39:49.000Z">
-<meta property="article:modified_time" content="2022-04-27T08:24:22.808Z">
+<meta property="article:modified_time" content="2022-04-28T03:37:28.097Z">
 <meta property="article:author" content="RT.L1on">
 <meta property="article:tag" content="go">
 <meta property="article:tag" content="Kubernetes">
@@ -197,10 +201,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-04-27 09:39:49 / 修改时间：16:24:22" itemprop="dateCreated datePublished" datetime="2022-04-27T09:39:49+08:00">2022-04-27</time>
+              <time title="创建时间：2022-04-27 09:39:49" itemprop="dateCreated datePublished" datetime="2022-04-27T09:39:49+08:00">2022-04-27</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-04-28 11:37:28" itemprop="dateModified" datetime="2022-04-28T11:37:28+08:00">2022-04-28</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -232,7 +242,7 @@ h2{
 }
 </style>
 <blockquote>
-<p>本文介绍了如何ubuntu使用kubectl、kubelet、kubeadm、docker搭建k8s集群</p>
+<p>本文介绍了如何在ubuntu环境下使用kubectl、kubelet、kubeadm、docker搭建k8s集群</p>
 </blockquote>
 <span id="more"></span> 
 <h1>安装环境及配置</h1>
@@ -249,18 +259,7 @@ h2{
 <code>k8s-server2:192.168.220.132</code><br>
 <code>k8s-server3:192.168.220.133</code></li>
 </ul>
-<h2 id="tips"><em>tips</em></h2>
-<p>本实验中主机名应设置应遵从DNS的解析规则的，要不然后续安装会报以下错误。</p>
-<blockquote>
-<p><a target="_blank" rel="noopener" href="http://nodeRegistration.name">nodeRegistration.name</a>: Invalid value: “k8s_server1”: a DNS-1123 subdomain must consist of lower case alphanumeric characters, ‘-’ or ‘.’, and must start and end with an alphanumeric character (e.g. ‘<a target="_blank" rel="noopener" href="http://example.com">example.com</a>’, regex used for validation is ‘<a href="%5B-a-z0-9%5D*%5Ba-z0-9%5D">a-z0-9</a>?(.<a href="%5B-a-z0-9%5D*%5Ba-z0-9%5D">a-z0-9</a>?)*’)</p>
-</blockquote>
-<p><em><strong>reason：</strong></em><br>
-hostname 和 DNS 的解析规则不匹配导致报错,原因是 hostname 和 DNS 的解析规则不匹配， 不能有除<code>-</code>和<code>.</code>之外的特殊字符存在。注意是主机名hostname，不可有<code>-</code>或者<code>.</code>。</p>
-<p><em><strong>solution：</strong></em><br>
-执行<code>hostname</code>命令查看hostname</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hostname</span><br><span class="line">k8s_server1</span><br></pre></td></tr></table></figure>
-<p>执行<code>hostnamectl set-hostname &lt;主机名&gt;</code>命令更改主机名，&lt;主机名&gt;可自定义,例如:</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostnamectl set-hostname k8s-server1</span><br></pre></td></tr></table></figure>
+<p>==注：== 这里节点的命名不能有除<code>-</code>、<code>.</code>之外的符号，否则后续可能会报错，详见<a href="#%E4%B8%BB%E6%9C%BA%E5%90%8D%E8%AE%BE%E7%BD%AE%E9%94%99%E8%AF%AF">主机名设置错误</a></p>
 <h1>k8s部署环境准备</h1>
 <h2 id="关闭防火墙">关闭防火墙</h2>
 <pre><code><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systemctl  stop  firewalld</span><br><span class="line">systemctl  disable  firewalld</span><br></pre></td></tr></table></figure>
@@ -327,7 +326,64 @@ hostname 和 DNS 的解析规则不匹配导致报错,原因是 hostname 和 DNS
 <code>kubectl get nodes</code>：查看节点状态<br>
 当STATUS显示为Ready时，则k8s环境就搭建好了：<br>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271556072.png" alt=""></p>
-<h2 id="tips-2"><em>tips</em></h2>
+<h2 id="master部署Dashboard">master部署Dashboard</h2>
+<ol>
+<li>
+<p>To deploy Dashboard, execute following command:</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.5.1/aio/deploy/recommended.yaml</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>查看dashboard运行状态，它是在kubernetes-dashboard这个namespace中运行（从上面的部署信息可以看出，在部署时会创建kubernetes-dashboard这个namespace），以deployment方式部署，运行2个pod及2个service：</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看namespace=kubernetes-dashboard</span></span><br><span class="line">root@k8s-server1:~# kubectl get deployment -n kubernetes-dashboard | grep dashboard</span><br><span class="line">dashboard-metrics-scraper   1/1     1            1           14h</span><br><span class="line">kubernetes-dashboard        1/1     1            1           14h</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看namespace=kubernetes-dashboard的pod</span></span><br><span class="line">root@k8s-server1:~# kubectl -n kubernetes-dashboard get pods</span><br><span class="line">NAME                                         READY   STATUS    RESTARTS   AGE</span><br><span class="line">dashboard-metrics-scraper-856586f554-db4b8   1/1     Running   0          14h</span><br><span class="line">kubernetes-dashboard-7795fd6d89-6kfrv        1/1     Running   0          14h</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看namespace=kubernetes-dashboard的service</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">注：这里的kubernetes-dashboard的Type=NodePort和PORT=443:30001中的30001是后续操作才产生的。</span></span><br><span class="line">root@k8s-server1:~# kubectl -n kubernetes-dashboard get svc </span><br><span class="line">NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)         AGE</span><br><span class="line">dashboard-metrics-scraper   ClusterIP   10.106.34.25     &lt;none&gt;        8000/TCP        14h</span><br><span class="line">kubernetes-dashboard        NodePort    10.108.202.213   &lt;none&gt;        443:30001/TCP   14h</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>修改配置文件<br>
+由于默认的service是 ClusterIP类型，为了能在外部访问，这里将其改为nodeport方式。</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl -n kubernetes-dashboard edit service kubernetes-dashboard</span><br></pre></td></tr></table></figure>
+<p>在 ports下面添加nodePort: 32576，将 clusterIp改为NodePort</p>
+ <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">...</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">clusterIP:</span> <span class="number">10.108</span><span class="number">.202</span><span class="number">.213</span></span><br><span class="line">  <span class="attr">clusterIPs:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="number">10.108</span><span class="number">.202</span><span class="number">.213</span></span><br><span class="line">  <span class="attr">externalTrafficPolicy:</span> <span class="string">Cluster</span></span><br><span class="line">  <span class="attr">internalTrafficPolicy:</span> <span class="string">Cluster</span></span><br><span class="line">  <span class="attr">ipFamilies:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">IPv4</span></span><br><span class="line">  <span class="attr">ipFamilyPolicy:</span> <span class="string">SingleStack</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">nodePort:</span> <span class="number">30001</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">443</span></span><br><span class="line">    <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8443</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">k8s-app:</span> <span class="string">kubernetes-dashboard</span></span><br><span class="line">  <span class="attr">sessionAffinity:</span> <span class="string">None</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br><span class="line"><span class="string">...</span></span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<p>登录dashboard<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281100264.png" alt=""><br>
+在k8s中 dashboard可以有两种访问方式：kubeconfig（HTTPS）和token（http）<br>
+可以参考官方文档：<br>
+<a target="_blank" rel="noopener" href="https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md">https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md</a></p>
+<ul>
+<li>
+<p><strong>token认证</strong><br>
+创建dashboard-adminuser.yaml，通过ClusterRoleBinding使ServiceAccount和集群某个ClusterRole相关联。<br>
+注意：认证时的账号必须是ServiceAccount</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim dashboard-adminuser.yaml </span><br></pre></td></tr></table></figure>
+<p>在dashboard-adminuser输入以下内容</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kubernetes-dashboard</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRoleBinding</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">cluster-admin</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kubernetes-dashboard</span></span><br></pre></td></tr></table></figure>
+<p>应用该配置文件</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f dashboard-adminuser.yaml</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>note：上面创建了一个属于kubernetes-dashboard名称空间的ServiceAccount，其名称为admin-user的，并通过ClusterRoleBinding将cluster-admin角色绑定到admin-user上，这样admin-user账户就有了管理员的权限。默认情况下，kubeadm创建集群时已经创建了cluster-admin角色，我们直接绑定即可。</p>
+</blockquote>
+<p>查看admin-user这个ServiceAccount的token信息</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl -n kubernetes-dashboard get secret | grep admin-user</span><br></pre></td></tr></table></figure>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281118121.png" alt=""></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl -n kubernetes-dashboard describe secret admin-user-token-lgwnt</span><br></pre></td></tr></table></figure>
+<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281118584.png" alt=""><br>
+把获取到的Token复制到登录界面的Token输入框中，成功登陆dashboard:<br>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281120356.png" alt=""></p>
+</li>
+<li>
+<p><strong>kubeconfig认证</strong>//todo后续用到再补充</p>
+<ol>
+<li>配置集群信息</li>
+<li>使用上面token认证方式中的token信息（这里选用具有所有名称空间管理权限的那个token）写入集群验证</li>
+<li>配置context</li>
+<li>将/root/dashboard-admin.conf文件发送到主机，浏览器访问时选择Kubeconfig认证，载入该配置文件，点击登陆，即可实现访问。</li>
+</ol>
+</li>
+</ul>
+</li>
+</ol>
+<h1>报错解决</h1>
+<h2 id="版本问题">版本问题</h2>
 <p>如果版本安装的有问题，可能会有以下报错：</p>
 <blockquote>
 <p>[ERROR KubeletVersion]: the kubelet version is higher than the control plane version. This is not a supported version skew and may lead to a malfunctional cluster</p>
@@ -342,8 +398,36 @@ hostname 和 DNS 的解析规则不匹配导致报错,原因是 hostname 和 DNS
 笔者查看的时候最新版本是1.23.6-00，不写版本直接下载的应该就是这个版本。</li>
 <li>卸载kubelet <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">删除软件及其配置文件</span></span><br><span class="line">apt-get --purge remove kubelet</span><br></pre></td></tr></table></figure>
 </li>
-<li>重新安装制定版本的kubelet <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-get install kubelet=1.22.0-00</span><br></pre></td></tr></table></figure></li>
+<li>重新安装制定版本的kubelet <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-get install kubelet=1.22.0-00</span><br></pre></td></tr></table></figure>
+</li>
 </ol>
+<h2 id="8080-was-refused">8080 was refused</h2>
+<p>The connection to the server localhost:8080 was refused - did you specify the right host or port?</p>
+<p><em><strong>reason：</strong></em><br>
+  kubernetes master没有与本机绑定，集群初始化的时候没有绑定，此时设置在本机的环境变量即可解决问题。</p>
+<p><em><strong>solution：</strong></em><br>
+将<code>export KUBECONFIG=/etc/kubernetes/admin.conf</code>加入到环境变量中</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;export KUBECONFIG=/etc/kubernetes/admin.conf&quot; &gt;&gt; /etc/profile</span><br><span class="line">source /etc/profile</span><br></pre></td></tr></table></figure>
+<h2 id="主机名设置错误">主机名设置错误</h2>
+<p>本实验中主机名应设置应遵从DNS的解析规则的，要不然后续安装会报以下错误。</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="http://nodeRegistration.name">nodeRegistration.name</a>: Invalid value: “k8s_server1”: a DNS-1123 subdomain must consist of lower case alphanumeric characters, ‘-’ or ‘.’, and must start and end with an alphanumeric character (e.g. ‘<a target="_blank" rel="noopener" href="http://example.com">example.com</a>’, regex used for validation is ‘<a href="%5B-a-z0-9%5D*%5Ba-z0-9%5D">a-z0-9</a>?(.<a href="%5B-a-z0-9%5D*%5Ba-z0-9%5D">a-z0-9</a>?)*’)</p>
+</blockquote>
+<p><em><strong>reason：</strong></em><br>
+hostname 和 DNS 的解析规则不匹配导致报错,原因是 hostname 和 DNS 的解析规则不匹配， 不能有除<code>-</code>和<code>.</code>之外的特殊字符存在。注意是主机名hostname，不可有<code>-</code>或者<code>.</code>。</p>
+<p><em><strong>solution：</strong></em><br>
+执行<code>hostname</code>命令查看hostname</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hostname</span><br><span class="line">k8s_server1</span><br></pre></td></tr></table></figure>
+<p>执行<code>hostnamectl set-hostname &lt;主机名&gt;</code>命令更改主机名，&lt;主机名&gt;可自定义,例如:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostnamectl set-hostname k8s-server1</span><br></pre></td></tr></table></figure>
+<h1>References</h1>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/python-cat/p/10831419.html">https://www.cnblogs.com/python-cat/p/10831419.html</a><br>
+<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/9876ee85eca0">https://www.jianshu.com/p/9876ee85eca0</a><br>
+<a target="_blank" rel="noopener" href="https://www.cnblogs.com/schblog/p/14869532.html">https://www.cnblogs.com/schblog/p/14869532.html</a><br>
+<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_26545503/article/details/109264010">https://blog.csdn.net/qq_26545503/article/details/109264010</a><br>
+<a target="_blank" rel="noopener" href="https://www.cnblogs.com/wangzy-Zj/p/13274095.html">https://www.cnblogs.com/wangzy-Zj/p/13274095.html</a><br>
+<a target="_blank" rel="noopener" href="https://blog.csdn.net/xiaochenwj1995/article/details/113464387">Dashboard认证访问</a><br>
+<a target="_blank" rel="noopener" href="https://blog.csdn.net/CEVERY/article/details/108753379">报错:The connection to the server localhost:8080 was refused</a></p>
 
     </div>
 
@@ -425,7 +509,7 @@ hostname 和 DNS 的解析规则不匹配导致报错,原因是 hostname 和 DNS
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">安装环境及配置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E7%8E%AF%E5%A2%83"><span class="nav-number">1.1.</span> <span class="nav-text">实验环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F%E6%9C%BA%E8%AE%BE%E7%BD%AE"><span class="nav-number">1.2.</span> <span class="nav-text">虚拟机设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#tips"><span class="nav-number">1.3.</span> <span class="nav-text">tips</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">k8s部署环境准备</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%97%AD%E9%98%B2%E7%81%AB%E5%A2%99"><span class="nav-number">2.1.</span> <span class="nav-text">关闭防火墙</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%97%AD%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98swap"><span class="nav-number">2.2.</span> <span class="nav-text">关闭虚拟内存swap</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%A8master%E8%8A%82%E7%82%B9%E6%B7%BB%E5%8A%A0hosts"><span class="nav-number">2.3.</span> <span class="nav-text">在master节点添加hosts</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BE%E7%BD%AE%E7%BD%91%E6%A1%A5%E5%8F%82%E6%95%B0"><span class="nav-number">2.4.</span> <span class="nav-text">设置网桥参数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E5%90%8C%E6%AD%A5"><span class="nav-number">2.5.</span> <span class="nav-text">时间同步</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">k8s安装过程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85docker"><span class="nav-number">3.1.</span> <span class="nav-text">安装docker</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85kubeadm%E3%80%81kubelet%E3%80%81kubectl"><span class="nav-number">3.2.</span> <span class="nav-text">安装kubeadm、kubelet、kubectl</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%AF%E5%8A%A8%E5%90%84%E4%B8%AA%E8%8A%82%E7%82%B9"><span class="nav-number">3.3.</span> <span class="nav-text">启动各个节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#master%E9%83%A8%E7%BD%B2%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6"><span class="nav-number">3.4.</span> <span class="nav-text">master部署网络插件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#tips-2"><span class="nav-number">3.5.</span> <span class="nav-text">tips</span></a></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">1.</span> <span class="nav-text">安装环境及配置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E7%8E%AF%E5%A2%83"><span class="nav-number">1.1.</span> <span class="nav-text">实验环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F%E6%9C%BA%E8%AE%BE%E7%BD%AE"><span class="nav-number">1.2.</span> <span class="nav-text">虚拟机设置</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">2.</span> <span class="nav-text">k8s部署环境准备</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%97%AD%E9%98%B2%E7%81%AB%E5%A2%99"><span class="nav-number">2.1.</span> <span class="nav-text">关闭防火墙</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%97%AD%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98swap"><span class="nav-number">2.2.</span> <span class="nav-text">关闭虚拟内存swap</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%A8master%E8%8A%82%E7%82%B9%E6%B7%BB%E5%8A%A0hosts"><span class="nav-number">2.3.</span> <span class="nav-text">在master节点添加hosts</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%BE%E7%BD%AE%E7%BD%91%E6%A1%A5%E5%8F%82%E6%95%B0"><span class="nav-number">2.4.</span> <span class="nav-text">设置网桥参数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%97%B6%E9%97%B4%E5%90%8C%E6%AD%A5"><span class="nav-number">2.5.</span> <span class="nav-text">时间同步</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">3.</span> <span class="nav-text">k8s安装过程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85docker"><span class="nav-number">3.1.</span> <span class="nav-text">安装docker</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E8%A3%85kubeadm%E3%80%81kubelet%E3%80%81kubectl"><span class="nav-number">3.2.</span> <span class="nav-text">安装kubeadm、kubelet、kubectl</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%AF%E5%8A%A8%E5%90%84%E4%B8%AA%E8%8A%82%E7%82%B9"><span class="nav-number">3.3.</span> <span class="nav-text">启动各个节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#master%E9%83%A8%E7%BD%B2%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6"><span class="nav-number">3.4.</span> <span class="nav-text">master部署网络插件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#master%E9%83%A8%E7%BD%B2Dashboard"><span class="nav-number">3.5.</span> <span class="nav-text">master部署Dashboard</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">4.</span> <span class="nav-text">报错解决</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%89%88%E6%9C%AC%E9%97%AE%E9%A2%98"><span class="nav-number">4.1.</span> <span class="nav-text">版本问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8080-was-refused"><span class="nav-number">4.2.</span> <span class="nav-text">8080 was refused</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BB%E6%9C%BA%E5%90%8D%E8%AE%BE%E7%BD%AE%E9%94%99%E8%AF%AF"><span class="nav-number">4.3.</span> <span class="nav-text">主机名设置错误</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link"><span class="nav-number">5.</span> <span class="nav-text">References</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

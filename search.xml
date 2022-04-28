@@ -1,700 +1,227 @@
 <?xml version="1.0" encoding="utf-8"?>
-<search>
-  <entry>
-    <title>test_my_site</title>
-    <url>/2022/03/test-my-site/</url>
-    <content><![CDATA[]]></content>
+<search> 
+  
+  
+    
+    <entry>
+      <title>k8s安装</title>
+      <link href="/2022/04/k8s%E5%AE%89%E8%A3%85/"/>
+      <url>/2022/04/k8s%E5%AE%89%E8%A3%85/</url>
+      
+        <content type="html"><![CDATA[<style>h1{    background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);    color: #000;}h2{    background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);}</style><blockquote><p>本文介绍了如何在ubuntu环境下使用kubectl、kubelet、kubeadm、docker搭建k8s集群</p></blockquote><span id="more"></span> <h1>安装环境及配置</h1><h2 id="实验环境">实验环境</h2><ul><li>ubuntu-18.04.6-live-server-amd64</li><li>VMware® Workstation 16 Pro</li></ul><h2 id="虚拟机设置">虚拟机设置</h2><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204270944640.png" alt=""></p><ul><li>各节点的ip地址<br><code>k8s-server1:192.168.220.131</code>//master节点<br><code>k8s-server2:192.168.220.132</code><br><code>k8s-server3:192.168.220.133</code></li></ul><p>==注：== 这里节点的命名不能有除<code>-</code>、<code>.</code>之外的符号，否则后续可能会报错，详见<a href="#%E4%B8%BB%E6%9C%BA%E5%90%8D%E8%AE%BE%E7%BD%AE%E9%94%99%E8%AF%AF">主机名设置错误</a></p><h1>k8s部署环境准备</h1><h2 id="关闭防火墙">关闭防火墙</h2><pre><code><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systemctl  stop  firewalld</span><br><span class="line">systemctl  disable  firewalld</span><br></pre></td></tr></table></figure></code></pre><h2 id="关闭虚拟内存swap">关闭虚拟内存swap</h2>  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">暂时关闭</span></span><br><span class="line">sudo swapoff -a</span><br></pre></td></tr></table></figure>  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">永久关闭(注释掉/etc/fstab文件中的swap行)</span></span><br><span class="line">sed  -ri  &#x27;s/.*swap.*/#&amp;/&#x27;  /etc/fstab</span><br></pre></td></tr></table></figure><h2 id="在master节点添加hosts">在master节点添加hosts</h2>  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">编辑hosts文件，将所有节点的ip和主机名一一对应</span></span><br><span class="line">cat &gt;&gt; /etc/hosts &lt;&lt; EOF</span><br><span class="line">192.168.220.131   k8s-server1</span><br><span class="line">192.168.220.132   k8s-server2</span><br><span class="line">192.168.220.133   k8s-server3</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure><p>==注：== 此处<code>cat &gt;&gt; xxx &lt;&lt; EOF</code>与后面的<code>cat &gt; xxx &lt;&lt; EOF</code>的区别在于，前者是在原文件末尾加上新内容，后者则是新建一个xxx文件。</p><h2 id="设置网桥参数">设置网桥参数</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">将桥接的IPv4流量传递到iptables的链</span></span><br><span class="line">cat &gt; /etc/sysctl.d/k8s.conf &lt;&lt; EOF</span><br><span class="line">net.bridge.bridge-nf-call-ip6tables = 1</span><br><span class="line">net.bridge.bridge-nf-call-iptables = 1</span><br><span class="line">EOF</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">生效</span></span><br><span class="line">sysctl  --system  </span><br></pre></td></tr></table></figure><h2 id="时间同步">时间同步</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">apt install ntpdate  -y</span><br><span class="line">ntpdate time.windows.com</span><br></pre></td></tr></table></figure><h1>k8s安装过程</h1><p><strong>所有服务器节点安装 docker、kubeadm、kubelet、dubectl</strong><br>==//todo:后续要学习这几个软件各自的作用==</p><h2 id="安装docker">安装docker</h2><p>安装docker</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update</span><br><span class="line"></span><br><span class="line">sudo apt-get install \</span><br><span class="line">    apt-transport-https \</span><br><span class="line">    ca-certificates \</span><br><span class="line">    curl \</span><br><span class="line">    gnupg-agent \</span><br><span class="line">    software-properties-common  -y</span><br><span class="line"></span><br><span class="line">curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -</span><br><span class="line"></span><br><span class="line">sudo add-apt-repository \</span><br><span class="line">   &quot;deb [arch=amd64] https://download.docker.com/linux/ubuntu \</span><br><span class="line"><span class="meta prompt_">   $</span><span class="language-bash">(lsb_release -cs) \</span></span><br><span class="line"><span class="language-bash">   stable<span class="string">&quot;</span></span></span><br></pre></td></tr></table></figure><p>再更新一下，添加docker镜像源，阿里的没配置账户用不了，这里用的网易镜像源</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">apt-get update</span><br><span class="line"></span><br><span class="line">mkdir /etc/docker</span><br><span class="line">cat &gt; /etc/docker/daemon.json &lt;&lt; EOF</span><br><span class="line">&#123;</span><br><span class="line"> &quot;registry-mirrors&quot;: [</span><br><span class="line">     &quot;http://hub-mirror.c.163.com&quot;,</span><br><span class="line">     &quot;https://docker.mirrors.ustc.edu.cn&quot;</span><br><span class="line"> ],</span><br><span class="line"> &quot;exec-opts&quot;: [&quot;native.cgroupdriver=systemd&quot;]</span><br><span class="line">&#125;</span><br><span class="line">EOF</span><br><span class="line"></span><br><span class="line">sudo apt-get install docker-ce docker-ce-cli containerd.io  -y</span><br></pre></td></tr></table></figure><p>重启docker</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl restart docker</span><br></pre></td></tr></table></figure><h2 id="安装kubeadm、kubelet、kubectl">安装kubeadm、kubelet、kubectl</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">使得 apt 支持 ssl 传输</span></span><br><span class="line">apt-get update &amp;&amp; apt-get install -y apt-transport-https</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">下载 gpg 密钥</span></span><br><span class="line">curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add - </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">添加 k8s 镜像源</span></span><br><span class="line">cat &gt; /etc/apt/sources.list.d/kubernetes.list &lt;&lt; EOF </span><br><span class="line">deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main</span><br><span class="line">EOF</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">更新源列表</span></span><br><span class="line">apt-get update</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">下载 kubectl，kubeadm以及 kubelet</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">（由于后续需要安装KubeEdge，KubeEdge支持的最新版本的k8s是1.22.0）</span></span><br><span class="line">apt-get install -y kubelet=1.22.0-00 kubeadm=1.22.0-00 kubectl=1.22.0-00</span><br></pre></td></tr></table></figure><h2 id="启动各个节点">启动各个节点</h2><ol><li><p>通过kubeadm init启动master节点</p> <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kubeadm init \</span><br><span class="line">--apiserver-advertise-address=192.168.220.131 \</span><br><span class="line">--image-repository registry.aliyuncs.com/google_containers \</span><br><span class="line">--kubernetes-version v1.22.0 \</span><br><span class="line">--service-cidr=10.96.0.0/12 \</span><br><span class="line">--pod-network-cidr=10.244.0.0/16</span><br></pre></td></tr></table></figure><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271445417.png" alt=""></p><blockquote><p><em>note:</em> service-cidr的选取和PodCIDR及本机网络不能有重叠或者冲突，一般可以选择一个本机网络和PodCIDR都没有用到的私网地址段，比如PodCIDR使用10.244.0.0/16，那么service-cidr可以选择10.96.0.0/12，网络无重叠冲突即可。</p></blockquote></li><li><p>接下来在master节点上执行</p> <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">run the following as a regular user</span></span><br><span class="line">mkdir -p $HOME/.kube</span><br><span class="line">cp -i /etc/kubernetes/admin.conf $HOME/.kube/config</span><br><span class="line">chown $(id -u):$(id -g) $HOME/.kube/config</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="keyword">if</span> you are the root user, you can run:</span></span><br><span class="line">export KUBECONFIG=/etc/kubernetes/admin.conf</span><br></pre></td></tr></table></figure><p><code>kubectl get nodes</code>：查看节点状态<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271452387.png" alt=""></p></li><li><p>node加入集群<br>向集群添加新节点，执行的命令就是第一步<code>kubeadm init</code>最后输出的<code>kubeadm join</code>命令<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271454061.png" alt=""></p> <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">eg.k8s-server2作为一个node节点运行kubeadm <span class="built_in">join</span>命令</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">（要保证node节点的前置环境也装好了）</span></span><br><span class="line">kubeadm join 192.168.220.131:6443 --token lmnc8j.i5vke858hfo9pgka \</span><br><span class="line">    --discovery-token-ca-cert-hash sha256:70a2c8f5fbb50ce24caad2c04dfcf971e1ca5aa437765fd6b1b15bfc8d9cd563</span><br></pre></td></tr></table></figure><p>加入集群成功：<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271529921.png" alt=""></p><p>回到master节点，运行<code>kubectl get nodes</code>查看节点状态<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271524353.png" alt=""></p></li><li><p>同理将k8s-server3加入集群<br>回到master节点运行<code>kubectl get nodes</code>查看节点状态，等一会儿，直到Status变为Ready，则server3成功加入集群<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271618605.png" alt=""></p></li></ol><h2 id="master部署网络插件">master部署网络插件</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">下载kube-flannel.yml文件（可能要多试几次）</span></span><br><span class="line">wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">应用kube-flannel.yml文件得到运行时容器</span></span><br><span class="line">kubectl apply -f kube-flannel.yml</span><br></pre></td></tr></table></figure><p>运行结果：<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271527114.png" alt=""></p><p><code>kubectl get pods -n kube-system</code>：查看运行时容器pod<br><code>kubectl get nodes</code>：查看节点状态<br>当STATUS显示为Ready时，则k8s环境就搭建好了：<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271556072.png" alt=""></p><h2 id="master部署Dashboard">master部署Dashboard</h2><ol><li><p>To deploy Dashboard, execute following command:</p> <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.5.1/aio/deploy/recommended.yaml</span><br></pre></td></tr></table></figure></li><li><p>查看dashboard运行状态，它是在kubernetes-dashboard这个namespace中运行（从上面的部署信息可以看出，在部署时会创建kubernetes-dashboard这个namespace），以deployment方式部署，运行2个pod及2个service：</p> <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看namespace=kubernetes-dashboard</span></span><br><span class="line">root@k8s-server1:~# kubectl get deployment -n kubernetes-dashboard | grep dashboard</span><br><span class="line">dashboard-metrics-scraper   1/1     1            1           14h</span><br><span class="line">kubernetes-dashboard        1/1     1            1           14h</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看namespace=kubernetes-dashboard的pod</span></span><br><span class="line">root@k8s-server1:~# kubectl -n kubernetes-dashboard get pods</span><br><span class="line">NAME                                         READY   STATUS    RESTARTS   AGE</span><br><span class="line">dashboard-metrics-scraper-856586f554-db4b8   1/1     Running   0          14h</span><br><span class="line">kubernetes-dashboard-7795fd6d89-6kfrv        1/1     Running   0          14h</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看namespace=kubernetes-dashboard的service</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">注：这里的kubernetes-dashboard的Type=NodePort和PORT=443:30001中的30001是后续操作才产生的。</span></span><br><span class="line">root@k8s-server1:~# kubectl -n kubernetes-dashboard get svc </span><br><span class="line">NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)         AGE</span><br><span class="line">dashboard-metrics-scraper   ClusterIP   10.106.34.25     &lt;none&gt;        8000/TCP        14h</span><br><span class="line">kubernetes-dashboard        NodePort    10.108.202.213   &lt;none&gt;        443:30001/TCP   14h</span><br></pre></td></tr></table></figure></li><li><p>修改配置文件<br>由于默认的service是 ClusterIP类型，为了能在外部访问，这里将其改为nodeport方式。</p> <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl -n kubernetes-dashboard edit service kubernetes-dashboard</span><br></pre></td></tr></table></figure><p>在 ports下面添加nodePort: 32576，将 clusterIp改为NodePort</p> <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">...</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">clusterIP:</span> <span class="number">10.108</span><span class="number">.202</span><span class="number">.213</span></span><br><span class="line">  <span class="attr">clusterIPs:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="number">10.108</span><span class="number">.202</span><span class="number">.213</span></span><br><span class="line">  <span class="attr">externalTrafficPolicy:</span> <span class="string">Cluster</span></span><br><span class="line">  <span class="attr">internalTrafficPolicy:</span> <span class="string">Cluster</span></span><br><span class="line">  <span class="attr">ipFamilies:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">IPv4</span></span><br><span class="line">  <span class="attr">ipFamilyPolicy:</span> <span class="string">SingleStack</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">nodePort:</span> <span class="number">30001</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">443</span></span><br><span class="line">    <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8443</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">k8s-app:</span> <span class="string">kubernetes-dashboard</span></span><br><span class="line">  <span class="attr">sessionAffinity:</span> <span class="string">None</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br><span class="line"><span class="string">...</span></span><br></pre></td></tr></table></figure></li><li><p>登录dashboard<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281100264.png" alt=""><br>在k8s中 dashboard可以有两种访问方式：kubeconfig（HTTPS）和token（http）<br>可以参考官方文档：<br><a href="https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md">https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md</a></p><ul><li><p><strong>token认证</strong><br>创建dashboard-adminuser.yaml，通过ClusterRoleBinding使ServiceAccount和集群某个ClusterRole相关联。<br>注意：认证时的账号必须是ServiceAccount</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim dashboard-adminuser.yaml </span><br></pre></td></tr></table></figure><p>在dashboard-adminuser输入以下内容</p><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kubernetes-dashboard</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRoleBinding</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">cluster-admin</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kubernetes-dashboard</span></span><br></pre></td></tr></table></figure><p>应用该配置文件</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f dashboard-adminuser.yaml</span><br></pre></td></tr></table></figure><blockquote><p>note：上面创建了一个属于kubernetes-dashboard名称空间的ServiceAccount，其名称为admin-user的，并通过ClusterRoleBinding将cluster-admin角色绑定到admin-user上，这样admin-user账户就有了管理员的权限。默认情况下，kubeadm创建集群时已经创建了cluster-admin角色，我们直接绑定即可。</p></blockquote><p>查看admin-user这个ServiceAccount的token信息</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl -n kubernetes-dashboard get secret | grep admin-user</span><br></pre></td></tr></table></figure><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281118121.png" alt=""></p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl -n kubernetes-dashboard describe secret admin-user-token-lgwnt</span><br></pre></td></tr></table></figure><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281118584.png" alt=""><br>把获取到的Token复制到登录界面的Token输入框中，成功登陆dashboard:<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281120356.png" alt=""></p></li><li><p><strong>kubeconfig认证</strong>//todo后续用到再补充</p><ol><li>配置集群信息</li><li>使用上面token认证方式中的token信息（这里选用具有所有名称空间管理权限的那个token）写入集群验证</li><li>配置context</li><li>将/root/dashboard-admin.conf文件发送到主机，浏览器访问时选择Kubeconfig认证，载入该配置文件，点击登陆，即可实现访问。</li></ol></li></ul></li></ol><h1>报错解决</h1><h2 id="版本问题">版本问题</h2><p>如果版本安装的有问题，可能会有以下报错：</p><blockquote><p>[ERROR KubeletVersion]: the kubelet version is higher than the control plane version. This is not a supported version skew and may lead to a malfunctional cluster</p></blockquote><p><em><strong>reason：</strong></em><br>  如果直接使用命令apt-get install kubeadm（kubelet、kubectl）下载kubeadm(或者kubelet、kubectl)，那么下载的会是最新版本的kubeadm。<br>  此时，如果想要部署一个1.22.0版本的k8s，那么，使用初始化集群命令时就会报错，提示此kubeadm版本只能部署高版本的k8s，而不能部署低版本的k8s.</p><p><em><strong>solution：</strong></em><br>  如果知道的比较晚，已经下载安装了kubeadm，该如何挽救呢？（这里一kubeadm为例,kubelet和kubectl同理）</p><ol><li>首先查看kubeadm版本： <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-cache madison kubelet</span><br></pre></td></tr></table></figure>笔者查看的时候最新版本是1.23.6-00，不写版本直接下载的应该就是这个版本。</li><li>卸载kubelet <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">删除软件及其配置文件</span></span><br><span class="line">apt-get --purge remove kubelet</span><br></pre></td></tr></table></figure></li><li>重新安装制定版本的kubelet <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-get install kubelet=1.22.0-00</span><br></pre></td></tr></table></figure></li></ol><h2 id="8080-was-refused">8080 was refused</h2><p>The connection to the server localhost:8080 was refused - did you specify the right host or port?</p><p><em><strong>reason：</strong></em><br>  kubernetes master没有与本机绑定，集群初始化的时候没有绑定，此时设置在本机的环境变量即可解决问题。</p><p><em><strong>solution：</strong></em><br>将<code>export KUBECONFIG=/etc/kubernetes/admin.conf</code>加入到环境变量中</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">echo &quot;export KUBECONFIG=/etc/kubernetes/admin.conf&quot; &gt;&gt; /etc/profile</span><br><span class="line">source /etc/profile</span><br></pre></td></tr></table></figure><h2 id="主机名设置错误">主机名设置错误</h2><p>本实验中主机名应设置应遵从DNS的解析规则的，要不然后续安装会报以下错误。</p><blockquote><p><a href="http://nodeRegistration.name">nodeRegistration.name</a>: Invalid value: “k8s_server1”: a DNS-1123 subdomain must consist of lower case alphanumeric characters, ‘-’ or ‘.’, and must start and end with an alphanumeric character (e.g. ‘<a href="http://example.com">example.com</a>’, regex used for validation is ‘<a href="%5B-a-z0-9%5D*%5Ba-z0-9%5D">a-z0-9</a>?(.<a href="%5B-a-z0-9%5D*%5Ba-z0-9%5D">a-z0-9</a>?)*’)</p></blockquote><p><em><strong>reason：</strong></em><br>hostname 和 DNS 的解析规则不匹配导致报错,原因是 hostname 和 DNS 的解析规则不匹配， 不能有除<code>-</code>和<code>.</code>之外的特殊字符存在。注意是主机名hostname，不可有<code>-</code>或者<code>.</code>。</p><p><em><strong>solution：</strong></em><br>执行<code>hostname</code>命令查看hostname</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hostname</span><br><span class="line">k8s_server1</span><br></pre></td></tr></table></figure><p>执行<code>hostnamectl set-hostname &lt;主机名&gt;</code>命令更改主机名，&lt;主机名&gt;可自定义,例如:</p><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostnamectl set-hostname k8s-server1</span><br></pre></td></tr></table></figure><h1>References</h1><p><a href="https://www.cnblogs.com/python-cat/p/10831419.html">https://www.cnblogs.com/python-cat/p/10831419.html</a><br><a href="https://www.jianshu.com/p/9876ee85eca0">https://www.jianshu.com/p/9876ee85eca0</a><br><a href="https://www.cnblogs.com/schblog/p/14869532.html">https://www.cnblogs.com/schblog/p/14869532.html</a><br><a href="https://blog.csdn.net/qq_26545503/article/details/109264010">https://blog.csdn.net/qq_26545503/article/details/109264010</a><br><a href="https://www.cnblogs.com/wangzy-Zj/p/13274095.html">https://www.cnblogs.com/wangzy-Zj/p/13274095.html</a><br><a href="https://blog.csdn.net/xiaochenwj1995/article/details/113464387">Dashboard认证访问</a><br><a href="https://blog.csdn.net/CEVERY/article/details/108753379">报错:The connection to the server localhost:8080 was refused</a></p>]]></content>
+      
+      
       <categories>
-        <category>new</category>
+          
+          <category> k8s </category>
+          
       </categories>
-      <tags>
-        <tag>new</tag>
-        <tag>hello</tag>
-        <tag>world</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Hello World</title>
-    <url>/2022/03/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start">Quick Start</h2>
-<h3 id="Create-a-new-post">Create a new post</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server">Run server</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files">Generate static files</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites">Deploy to remote sites</h3>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> go </tag>
+            
+            <tag> Kubernetes </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>KubeEdge学习</title>
+      <link href="/2022/04/KubeEdge%E5%AD%A6%E4%B9%A0/"/>
+      <url>/2022/04/KubeEdge%E5%AD%A6%E4%B9%A0/</url>
+      
+        <content type="html"><![CDATA[<p>Kube+Edge:依托 Kubernetes 的容器编排和调度能力，实现云边协同、计算下沉、海量设备接入等。</p><span id="more"></span> <h1>KubeEdge架构分析</h1><p>KubeEdge是首个基于Kubernetes扩展的，提供云边协同能力的开放式智能边缘平台，也是CNCF在智能边缘领域的首个正式项目。KubeEdge重点解决的问题是：</p><ul><li>云边协同</li><li>资源异构</li><li>大规模</li><li>轻量化</li><li>一致的设备管理和接入体验</li></ul>]]></content>
+      
+      
       <categories>
-        <category>new</category>
+          
+          <category> KubeEdge </category>
+          
       </categories>
-      <tags>
-        <tag>hello</tag>
-        <tag>world</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>go基础学习</title>
-    <url>/2022/04/go%E5%9F%BA%E7%A1%80%E5%AD%A6%E4%B9%A0/</url>
-    <content><![CDATA[<style>
-h1{
-background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);
-color: #000;
-}
-h2{
-background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
-}
-</style>
-<span id="more"></span>
-<h1>系统内存管理</h1>
-<h2 id="操作系统内存">操作系统内存</h2>
-<p>操作系统已经将一整块内存划分好了区域，每个区域用来做不同的事情。如图：<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204110922500.png" alt=""></p>
-<ul>
-<li>text 段：存储程序的二进制指令，及其他的一些静态内容</li>
-<li>data 段：用来存储已被初始化的全局变量。比如常量（const）。</li>
-<li>bss 段：用来存放未被初始化的全局变量。和 .data 段一样都属于静态分配，在这里面的变量数据在编译就确定了大小，不释放。</li>
-<li>stack 段：栈空间，主要用于函数调用时存储临时变量的。这部分的内存是自动分配自动释放的。</li>
-<li>heap 段：堆空间，用于动态分配，C 语言中 malloc 和 free 操作的内存就在这里；Go 语言主要靠 GC 自动管理这部分。</li>
-</ul>
-<p>  其实现在的操作系统，进程内部的内存区域没这么简单，要比这复杂多了，比如内核区域，共享库区域。因为我们不是要真的开发一套操作系统，细节可以忽略。这里只需要记住堆空间和栈空间即可。</p>
-<ul>
-<li>栈空间是通过压栈出栈方式自动分配释放的，由系统管理，使用起来高效无感知。</li>
-<li>堆空间是用以动态分配的，由程序自己管理分配和释放。Go语言虽然可以帮我们自动管理分配和释放，但是代价也是很高的。</li>
-</ul>
-<h2 id="goroutine调度器">goroutine调度器</h2>
-<p>当你的 Go 程序启动之初，它会被分配一个逻辑处理器§，这是为这台机器定义的一个虚拟 CPU Core。如果你的 CPU 的每个核带有多个hardware thread（Hyper-Threading），每一个 hardware 都会对应 Go 语言中的一个虚拟 core。<br>
-<code>NumCPU()</code>函数返回的是当前程序逻辑上可用的cpu，</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;fmt&quot;</span></span><br><span class="line">    <span class="string">&quot;runtime&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// NumCPU returns the number of logical</span></span><br><span class="line">    <span class="comment">// CPUs usable by the current process.</span></span><br><span class="line">    fmt.Println(runtime.NumCPU())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>当我在自己的机器上运行这个程序，我的电脑cpu是i5-11400H，为6核12线程，NumCPU() 函数的结果是 12。我机器上运行的任何一个 Go 程序均会有 12 个 虚拟 core（P） 可以使用。</p>
-<p>每一个 P 会被分配一个系统线程(M)。这个 M 会被操作系统调度，操作系统仍然负责将线程(M)放到一个 CPU Core 上去执行。这意味着当我在我的机器上运行程序，我有 8 个线程可以使用去执行我的操作，每个线程都被绑定上了一个独立的 P。</p>
-<p>每一个 Go 程序也被赋予了一个初始的 goroutine(G)，它是 Go 程序的执行路径。一个 Goroutine 本质上就是一个 Coroutine(协程)，只不过因为在 Go 语言里，就改了个名字。你可以认为 Goroutine 是应用级别的线程，它在很多方面跟系统的线程是相似的。就像系统线程不断的在一个 core 上做上下文切换一样，Goroutine 不断的在 M 上做上下文切换。</p>
-<p>最后一个难题就是运行队列。在 Go 调度器中有 2 个不同的执行队列：全局队列（Global Run Queue, 简称 GRQ）和本地队列（Local Run Queue，简称 LRQ）。每一个 P 都会有一个 LRQ 来管理分配给 P 上的 Goroutine。这些 Goroutine 轮流被交付给 M 执行。GRQ 是用来保存还没有被分配到 P 的 Goroutine。会有一个逻辑将 Goroutine 从 GRQ 上移动到 LRQ 上，这个我们后面讨论。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204110952265.png" alt=""></p>
-<ul>
-<li>P:虚拟Core</li>
-<li>M:系统Thread（每一个 P 会被分配一个系统线程）</li>
-<li>G:goroutine</li>
-</ul>
-<h2 id="异步系统调用">异步系统调用</h2>
-<p>如果你的操作系统有能力异步处理系统调用，那么 network poller 可以更有效的来完成系统调用。这方面在 kqueue(MacOS)，epoll(Linux) 或 iocp(Windows) 中都有不同方式的实现。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111024022.png" alt=""></p>
-<p>上图展示了我们基础的调度轮廓。G1 在 M 上执行，同事其他 3 个 Goroutine 在 LRQ 中等待 M。现在 network poller 没有事情可做。<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111025720.png" alt=""></p>
-<p>上图中，G1 要执行一个网络调用，所以 G1 被移动到了 network poller 上，等待完成网络系统调用。一旦 G1 被移到了 network poller 中，M 现在就可以去执行 LRQ 中其他的 Goroutine 了。在这里例子中，G2 被切换到了 M 上。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111025554.png" alt=""></p>
-<p>异步网络系统调用完成后，G1 又被放回到了 P 的 LRQ中。一旦 G1 可以被切换到 M 上，处理网络请求结果相关的 Go 代码又能被执行了。这里最大的优势在于，执行网络系统调用，不需要额外的 M。network poller 有一个系统线程处理，它可以高效的处理事件的轮询。</p>
-<h2 id="同步系统调用">同步系统调用</h2>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111436505.png" alt=""></p>
-<p>上图展示了我们基本的调度图，但是这次 G1 将要执行一个同步的系统调用，这将会阻塞 M1。<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111436645.png" alt=""></p>
-<p>调度器有能力认出 G1 导致 M 阻塞了。这时，调度器会将 M 从 P 上分离出去，G1 依旧附在 M 上被一起分离了。然后调度器获取一个 M2 为 P 服务。此时，G2 会被选中切换到 M2 上执行。如果 M2 因为以前的切换操作已经存在了，那么这次转换就要比重新创建一个 M 要快。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111437596.png" alt=""></p>
-<p>上图中，由 G1 执行的阻塞式系统调用完成了。此时，G1 可以被放回到 LRQ 并等待被 P 在此调度。M1 会放在一边等待以后使用，以防止这种情况在此发生。如果空闲 M 很多，调度器会主动让其退出。</p>
-<h2 id="工作窃取">工作窃取</h2>
-<p>调度器的另一部分就是，它是一个工作窃取机制。这保证在一些场景下能保证高效的调度。</p>
-<p>让我们来看一个例子。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111441204.png" alt=""></p>
-<p>上图中，我们有一个多线程的 Go 程序带有 2 个 P，每个 P 都有 4 个 Goroutine 要执行，还有一个 Goroutine 在 GRQ 中。如果其中一个 P 很快的把所有的 Goroutine 都执行完了，会发生什么呢？</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111443886.png" alt=""></p>
-<p>P1 没有 Goroutine 可以执行了，但是仍然有 Goroutine 是处于就绪态的等待被执行，P2 的 LRQ 和 GRQ 中都有。这是 P1 就需要窃取工作了。工作窃取的逻辑如下。</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line">runtime.schedule() &#123;</span><br><span class="line">    <span class="comment">// only 1/61 of the time, check the global runnable queue for a G.</span></span><br><span class="line">    <span class="comment">// if not found, check the local queue.</span></span><br><span class="line">    <span class="comment">// if not found,</span></span><br><span class="line">    <span class="comment">//     try to steal from other Ps.</span></span><br><span class="line">    <span class="comment">//     if not, check the global runnable queue.</span></span><br><span class="line">    <span class="comment">//     if not found, poll network.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>所以基于上述注释描述的逻辑，P1 需要检查 P2 的 LRQ 中的 Goroutine 列表，把其中一半的 Goroutine 拿到自己的队列中。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111444468.png" alt=""></p>
-<p>上图中，P2 里的一半的 Goroutine 被交给了 P1 执行。</p>
-<p>如果 P2 执行完毕了所有的 Goroutine，同时 P1 的 LRQ 中也没有可执行的 Goroutine 了，怎么办呢？</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111444398.png" alt=""></p>
-<p>P2 完成了它的所有工作，现在需要窃取一些。首先它会检查一下 P1 的 LRQ，但是没有 Goroutine 可偷。下一步它会检查 GRQ。会找到 G9.</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111445449.png" alt=""></p>
-<p>P2 从 GRQ 上偷窃了 G9，并开始执行。这一切工作窃取的好处就在于，它使 M 保持繁忙而不是空闲。这方面还有一些其他的好处，JBD 在它的博客中解释的很好。</p>
-<h1>逃逸分析</h1>
-<h2 id="关于堆栈">关于堆栈</h2>
-<p>Go 语言虽然在内存管理方面降低了编程门槛，即使你不了解堆栈也能正常开发，但如果你要在性能上较真的话，还是要掌握这些基础知识。</p>
-<p>这里不对堆内存和栈内存的区别做太多阐述。简单来说就是，栈分配廉价，堆分配昂贵。栈空间会随着一个函数的结束自动释放，堆空间需要 GC 模块不断的跟踪扫描回收。</p>
-<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">stack</span><span class="params">()</span></span> <span class="type">int</span> &#123; </span><br><span class="line">    <span class="comment">// 变量 i 会在栈上分配</span></span><br><span class="line">     i := <span class="number">10</span></span><br><span class="line">     <span class="keyword">return</span> i</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">heap</span><span class="params">()</span></span> *<span class="type">int</span> &#123;</span><br><span class="line">    <span class="comment">// 变量 j 会在堆上分配</span></span><br><span class="line">    j := <span class="number">10</span></span><br><span class="line">    <span class="keyword">return</span> &amp;j</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>stack 函数中的变量 i 在函数退出会自动释放；而 heap 函数返回的是对变量i的引用，也就是说 heap()退出后，表示变量 i 还要能被访问，它会自动被分配到堆空间上。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// go build --gcflags &#x27;-l&#x27; test.go</span><br><span class="line">// go tool objdump ./test</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">TEXT main.stack(SB) /tmp/test.go</span><br><span class="line">  test.go:7     0x487240        48c74424080a000000  MOVQ $0xa, 0x8(SP)  </span><br><span class="line">  test.go:7     0x487249        c3          RET         </span><br><span class="line"></span><br><span class="line">TEXT main.heap(SB) /tmp/test.go</span><br><span class="line">  test.go:9     0x487250        64488b0c25f8ffffff  MOVQ FS:0xfffffff8, CX          </span><br><span class="line">  test.go:9     0x487259        483b6110        CMPQ 0x10(CX), SP           </span><br><span class="line">  test.go:9     0x48725d        7639            JBE 0x487298                </span><br><span class="line">  test.go:9     0x48725f        4883ec18        SUBQ $0x18, SP              </span><br><span class="line">  test.go:9     0x487263        48896c2410      MOVQ BP, 0x10(SP)           </span><br><span class="line">  test.go:9     0x487268        488d6c2410      LEAQ 0x10(SP), BP           </span><br><span class="line">  test.go:10        0x48726d        488d05ac090100      LEAQ 0x109ac(IP), AX            </span><br><span class="line">  test.go:10        0x487274        48890424        MOVQ AX, 0(SP)              </span><br><span class="line">  test.go:10        0x487278        e8f33df8ff      CALL runtime.newobject(SB)      </span><br><span class="line">  test.go:10        0x48727d        488b442408      MOVQ 0x8(SP), AX            </span><br><span class="line">  test.go:10        0x487282        48c7000a000000      MOVQ $0xa, 0(AX)            </span><br><span class="line">  test.go:11        0x487289        4889442420      MOVQ AX, 0x20(SP)           </span><br><span class="line">  test.go:11        0x48728e        488b6c2410      MOVQ 0x10(SP), BP           </span><br><span class="line">  test.go:11        0x487293        4883c418        ADDQ $0x18, SP              </span><br><span class="line">  test.go:11        0x487297        c3          RET                 </span><br><span class="line">  test.go:9     0x487298        e8a380fcff      CALL runtime.morestack_noctxt(SB)   </span><br><span class="line">  test.go:9     0x48729d        ebb1            JMP main.heap(SB)           </span><br><span class="line">// ...</span><br><span class="line"></span><br><span class="line">TEXT runtime.newobject(SB) /usr/share/go/src/runtime/malloc.go</span><br><span class="line">  malloc.go:1067    0x40b070        64488b0c25f8ffffff  MOVQ FS:0xfffffff8, CX          </span><br><span class="line">  malloc.go:1067    0x40b079        483b6110        CMPQ 0x10(CX), SP           </span><br><span class="line">  malloc.go:1067    0x40b07d        763d            JBE 0x40b0bc                </span><br><span class="line">  malloc.go:1067    0x40b07f        4883ec28        SUBQ $0x28, SP              </span><br><span class="line">  malloc.go:1067    0x40b083        48896c2420      MOVQ BP, 0x20(SP)           </span><br><span class="line">  malloc.go:1067    0x40b088        488d6c2420      LEAQ 0x20(SP), BP           </span><br><span class="line">  malloc.go:1068    0x40b08d        488b442430      MOVQ 0x30(SP), AX           </span><br><span class="line">  malloc.go:1068    0x40b092        488b08          MOVQ 0(AX), CX              </span><br><span class="line">  malloc.go:1068    0x40b095        48890c24        MOVQ CX, 0(SP)              </span><br><span class="line">  malloc.go:1068    0x40b099        4889442408      MOVQ AX, 0x8(SP)            </span><br><span class="line">  malloc.go:1068    0x40b09e        c644241001      MOVB $0x1, 0x10(SP)         </span><br><span class="line">  malloc.go:1068    0x40b0a3        e888f4ffff      CALL runtime.mallocgc(SB)       </span><br><span class="line">  malloc.go:1068    0x40b0a8        488b442418      MOVQ 0x18(SP), AX           </span><br><span class="line">  malloc.go:1068    0x40b0ad        4889442438      MOVQ AX, 0x38(SP)           </span><br><span class="line">  malloc.go:1068    0x40b0b2        488b6c2420      MOVQ 0x20(SP), BP           </span><br><span class="line">  malloc.go:1068    0x40b0b7        4883c428        ADDQ $0x28, SP              </span><br><span class="line">  malloc.go:1068    0x40b0bb        c3          RET                 </span><br><span class="line">  malloc.go:1067    0x40b0bc        e87f420400      CALL runtime.morestack_noctxt(SB)   </span><br><span class="line">  malloc.go:1067    0x40b0c1        ebad            JMP runtime.newobject(SB)       </span><br></pre></td></tr></table></figure>
-<p>逻辑的复杂度不言而喻，上面的汇编中可看到， <code>heap()</code> 函数调用了 <code>runtime.newobject()</code> 方法，它会调用 <code>mallocgc</code> 方法从 <code>mcache</code> 上申请内存，申请的内部逻辑前面文章已经讲述过。堆内存分配不仅分配上逻辑比栈空间分配复杂，它最致命的是会带来很大的管理成本，Go 语言要消耗很多的计算资源对其进行标记回收（也就是 GC 成本）。</p>
-<blockquote>
-<p>不要以为使用了堆内存就一定会导致性能低下，使用栈内存会带来性能优势。因为实际项目中，系统的性能瓶颈一般都不会出现在内存分配上。千万不要盲目优化，找到系统瓶颈，用数据驱动优化。</p>
-</blockquote>
-<h2 id="逃逸分析">逃逸分析</h2>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> go </tag>
+            
+            <tag> 边缘计算 </tag>
+            
+            <tag> KubeEdge </tag>
+            
+            <tag> Kubernetes </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>go基础学习</title>
+      <link href="/2022/04/go%E5%9F%BA%E7%A1%80%E5%AD%A6%E4%B9%A0/"/>
+      <url>/2022/04/go%E5%9F%BA%E7%A1%80%E5%AD%A6%E4%B9%A0/</url>
+      
+        <content type="html"><![CDATA[<style>h1{background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);color: #000;}h2{background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);}</style><span id="more"></span><h1>系统内存管理</h1><h2 id="操作系统内存">操作系统内存</h2><p>操作系统已经将一整块内存划分好了区域，每个区域用来做不同的事情。如图：<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204110922500.png" alt=""></p><ul><li>text 段：存储程序的二进制指令，及其他的一些静态内容</li><li>data 段：用来存储已被初始化的全局变量。比如常量（const）。</li><li>bss 段：用来存放未被初始化的全局变量。和 .data 段一样都属于静态分配，在这里面的变量数据在编译就确定了大小，不释放。</li><li>stack 段：栈空间，主要用于函数调用时存储临时变量的。这部分的内存是自动分配自动释放的。</li><li>heap 段：堆空间，用于动态分配，C 语言中 malloc 和 free 操作的内存就在这里；Go 语言主要靠 GC 自动管理这部分。</li></ul><p>  其实现在的操作系统，进程内部的内存区域没这么简单，要比这复杂多了，比如内核区域，共享库区域。因为我们不是要真的开发一套操作系统，细节可以忽略。这里只需要记住堆空间和栈空间即可。</p><ul><li>栈空间是通过压栈出栈方式自动分配释放的，由系统管理，使用起来高效无感知。</li><li>堆空间是用以动态分配的，由程序自己管理分配和释放。Go语言虽然可以帮我们自动管理分配和释放，但是代价也是很高的。</li></ul><h2 id="goroutine调度器">goroutine调度器</h2><p>当你的 Go 程序启动之初，它会被分配一个逻辑处理器§，这是为这台机器定义的一个虚拟 CPU Core。如果你的 CPU 的每个核带有多个hardware thread（Hyper-Threading），每一个 hardware 都会对应 Go 语言中的一个虚拟 core。<br><code>NumCPU()</code>函数返回的是当前程序逻辑上可用的cpu，</p><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;fmt&quot;</span></span><br><span class="line">    <span class="string">&quot;runtime&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// NumCPU returns the number of logical</span></span><br><span class="line">    <span class="comment">// CPUs usable by the current process.</span></span><br><span class="line">    fmt.Println(runtime.NumCPU())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>当我在自己的机器上运行这个程序，我的电脑cpu是i5-11400H，为6核12线程，NumCPU() 函数的结果是 12。我机器上运行的任何一个 Go 程序均会有 12 个 虚拟 core（P） 可以使用。</p><p>每一个 P 会被分配一个系统线程(M)。这个 M 会被操作系统调度，操作系统仍然负责将线程(M)放到一个 CPU Core 上去执行。这意味着当我在我的机器上运行程序，我有 8 个线程可以使用去执行我的操作，每个线程都被绑定上了一个独立的 P。</p><p>每一个 Go 程序也被赋予了一个初始的 goroutine(G)，它是 Go 程序的执行路径。一个 Goroutine 本质上就是一个 Coroutine(协程)，只不过因为在 Go 语言里，就改了个名字。你可以认为 Goroutine 是应用级别的线程，它在很多方面跟系统的线程是相似的。就像系统线程不断的在一个 core 上做上下文切换一样，Goroutine 不断的在 M 上做上下文切换。</p><p>最后一个难题就是运行队列。在 Go 调度器中有 2 个不同的执行队列：全局队列（Global Run Queue, 简称 GRQ）和本地队列（Local Run Queue，简称 LRQ）。每一个 P 都会有一个 LRQ 来管理分配给 P 上的 Goroutine。这些 Goroutine 轮流被交付给 M 执行。GRQ 是用来保存还没有被分配到 P 的 Goroutine。会有一个逻辑将 Goroutine 从 GRQ 上移动到 LRQ 上，这个我们后面讨论。</p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204110952265.png" alt=""></p><ul><li>P:虚拟Core</li><li>M:系统Thread（每一个 P 会被分配一个系统线程）</li><li>G:goroutine</li></ul><h2 id="异步系统调用">异步系统调用</h2><p>如果你的操作系统有能力异步处理系统调用，那么 network poller 可以更有效的来完成系统调用。这方面在 kqueue(MacOS)，epoll(Linux) 或 iocp(Windows) 中都有不同方式的实现。</p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111024022.png" alt=""></p><p>上图展示了我们基础的调度轮廓。G1 在 M 上执行，同事其他 3 个 Goroutine 在 LRQ 中等待 M。现在 network poller 没有事情可做。<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111025720.png" alt=""></p><p>上图中，G1 要执行一个网络调用，所以 G1 被移动到了 network poller 上，等待完成网络系统调用。一旦 G1 被移到了 network poller 中，M 现在就可以去执行 LRQ 中其他的 Goroutine 了。在这里例子中，G2 被切换到了 M 上。</p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111025554.png" alt=""></p><p>异步网络系统调用完成后，G1 又被放回到了 P 的 LRQ中。一旦 G1 可以被切换到 M 上，处理网络请求结果相关的 Go 代码又能被执行了。这里最大的优势在于，执行网络系统调用，不需要额外的 M。network poller 有一个系统线程处理，它可以高效的处理事件的轮询。</p><h2 id="同步系统调用">同步系统调用</h2><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111436505.png" alt=""></p><p>上图展示了我们基本的调度图，但是这次 G1 将要执行一个同步的系统调用，这将会阻塞 M1。<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111436645.png" alt=""></p><p>调度器有能力认出 G1 导致 M 阻塞了。这时，调度器会将 M 从 P 上分离出去，G1 依旧附在 M 上被一起分离了。然后调度器获取一个 M2 为 P 服务。此时，G2 会被选中切换到 M2 上执行。如果 M2 因为以前的切换操作已经存在了，那么这次转换就要比重新创建一个 M 要快。</p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111437596.png" alt=""></p><p>上图中，由 G1 执行的阻塞式系统调用完成了。此时，G1 可以被放回到 LRQ 并等待被 P 在此调度。M1 会放在一边等待以后使用，以防止这种情况在此发生。如果空闲 M 很多，调度器会主动让其退出。</p><h2 id="工作窃取">工作窃取</h2><p>调度器的另一部分就是，它是一个工作窃取机制。这保证在一些场景下能保证高效的调度。</p><p>让我们来看一个例子。</p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111441204.png" alt=""></p><p>上图中，我们有一个多线程的 Go 程序带有 2 个 P，每个 P 都有 4 个 Goroutine 要执行，还有一个 Goroutine 在 GRQ 中。如果其中一个 P 很快的把所有的 Goroutine 都执行完了，会发生什么呢？</p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111443886.png" alt=""></p><p>P1 没有 Goroutine 可以执行了，但是仍然有 Goroutine 是处于就绪态的等待被执行，P2 的 LRQ 和 GRQ 中都有。这是 P1 就需要窃取工作了。工作窃取的逻辑如下。</p><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">runtime.schedule() &#123;</span><br><span class="line">    <span class="comment">// only 1/61 of the time, check the global runnable queue for a G.</span></span><br><span class="line">    <span class="comment">// if not found, check the local queue.</span></span><br><span class="line">    <span class="comment">// if not found,</span></span><br><span class="line">    <span class="comment">//     try to steal from other Ps.</span></span><br><span class="line">    <span class="comment">//     if not, check the global runnable queue.</span></span><br><span class="line">    <span class="comment">//     if not found, poll network.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>所以基于上述注释描述的逻辑，P1 需要检查 P2 的 LRQ 中的 Goroutine 列表，把其中一半的 Goroutine 拿到自己的队列中。</p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111444468.png" alt=""></p><p>上图中，P2 里的一半的 Goroutine 被交给了 P1 执行。</p><p>如果 P2 执行完毕了所有的 Goroutine，同时 P1 的 LRQ 中也没有可执行的 Goroutine 了，怎么办呢？</p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111444398.png" alt=""></p><p>P2 完成了它的所有工作，现在需要窃取一些。首先它会检查一下 P1 的 LRQ，但是没有 Goroutine 可偷。下一步它会检查 GRQ。会找到 G9.</p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204111445449.png" alt=""></p><p>P2 从 GRQ 上偷窃了 G9，并开始执行。这一切工作窃取的好处就在于，它使 M 保持繁忙而不是空闲。这方面还有一些其他的好处，JBD 在它的博客中解释的很好。</p><h1>逃逸分析</h1><h2 id="关于堆栈">关于堆栈</h2><p>Go 语言虽然在内存管理方面降低了编程门槛，即使你不了解堆栈也能正常开发，但如果你要在性能上较真的话，还是要掌握这些基础知识。</p><p>这里不对堆内存和栈内存的区别做太多阐述。简单来说就是，栈分配廉价，堆分配昂贵。栈空间会随着一个函数的结束自动释放，堆空间需要 GC 模块不断的跟踪扫描回收。</p><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">stack</span><span class="params">()</span></span> <span class="type">int</span> &#123; </span><br><span class="line">    <span class="comment">// 变量 i 会在栈上分配</span></span><br><span class="line">     i := <span class="number">10</span></span><br><span class="line">     <span class="keyword">return</span> i</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">heap</span><span class="params">()</span></span> *<span class="type">int</span> &#123;</span><br><span class="line">    <span class="comment">// 变量 j 会在堆上分配</span></span><br><span class="line">    j := <span class="number">10</span></span><br><span class="line">    <span class="keyword">return</span> &amp;j</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>stack 函数中的变量 i 在函数退出会自动释放；而 heap 函数返回的是对变量i的引用，也就是说 heap()退出后，表示变量 i 还要能被访问，它会自动被分配到堆空间上。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">// go build --gcflags &#x27;-l&#x27; test.go</span><br><span class="line">// go tool objdump ./test</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">TEXT main.stack(SB) /tmp/test.go</span><br><span class="line">  test.go:7     0x487240        48c74424080a000000  MOVQ $0xa, 0x8(SP)  </span><br><span class="line">  test.go:7     0x487249        c3          RET         </span><br><span class="line"></span><br><span class="line">TEXT main.heap(SB) /tmp/test.go</span><br><span class="line">  test.go:9     0x487250        64488b0c25f8ffffff  MOVQ FS:0xfffffff8, CX          </span><br><span class="line">  test.go:9     0x487259        483b6110        CMPQ 0x10(CX), SP           </span><br><span class="line">  test.go:9     0x48725d        7639            JBE 0x487298                </span><br><span class="line">  test.go:9     0x48725f        4883ec18        SUBQ $0x18, SP              </span><br><span class="line">  test.go:9     0x487263        48896c2410      MOVQ BP, 0x10(SP)           </span><br><span class="line">  test.go:9     0x487268        488d6c2410      LEAQ 0x10(SP), BP           </span><br><span class="line">  test.go:10        0x48726d        488d05ac090100      LEAQ 0x109ac(IP), AX            </span><br><span class="line">  test.go:10        0x487274        48890424        MOVQ AX, 0(SP)              </span><br><span class="line">  test.go:10        0x487278        e8f33df8ff      CALL runtime.newobject(SB)      </span><br><span class="line">  test.go:10        0x48727d        488b442408      MOVQ 0x8(SP), AX            </span><br><span class="line">  test.go:10        0x487282        48c7000a000000      MOVQ $0xa, 0(AX)            </span><br><span class="line">  test.go:11        0x487289        4889442420      MOVQ AX, 0x20(SP)           </span><br><span class="line">  test.go:11        0x48728e        488b6c2410      MOVQ 0x10(SP), BP           </span><br><span class="line">  test.go:11        0x487293        4883c418        ADDQ $0x18, SP              </span><br><span class="line">  test.go:11        0x487297        c3          RET                 </span><br><span class="line">  test.go:9     0x487298        e8a380fcff      CALL runtime.morestack_noctxt(SB)   </span><br><span class="line">  test.go:9     0x48729d        ebb1            JMP main.heap(SB)           </span><br><span class="line">// ...</span><br><span class="line"></span><br><span class="line">TEXT runtime.newobject(SB) /usr/share/go/src/runtime/malloc.go</span><br><span class="line">  malloc.go:1067    0x40b070        64488b0c25f8ffffff  MOVQ FS:0xfffffff8, CX          </span><br><span class="line">  malloc.go:1067    0x40b079        483b6110        CMPQ 0x10(CX), SP           </span><br><span class="line">  malloc.go:1067    0x40b07d        763d            JBE 0x40b0bc                </span><br><span class="line">  malloc.go:1067    0x40b07f        4883ec28        SUBQ $0x28, SP              </span><br><span class="line">  malloc.go:1067    0x40b083        48896c2420      MOVQ BP, 0x20(SP)           </span><br><span class="line">  malloc.go:1067    0x40b088        488d6c2420      LEAQ 0x20(SP), BP           </span><br><span class="line">  malloc.go:1068    0x40b08d        488b442430      MOVQ 0x30(SP), AX           </span><br><span class="line">  malloc.go:1068    0x40b092        488b08          MOVQ 0(AX), CX              </span><br><span class="line">  malloc.go:1068    0x40b095        48890c24        MOVQ CX, 0(SP)              </span><br><span class="line">  malloc.go:1068    0x40b099        4889442408      MOVQ AX, 0x8(SP)            </span><br><span class="line">  malloc.go:1068    0x40b09e        c644241001      MOVB $0x1, 0x10(SP)         </span><br><span class="line">  malloc.go:1068    0x40b0a3        e888f4ffff      CALL runtime.mallocgc(SB)       </span><br><span class="line">  malloc.go:1068    0x40b0a8        488b442418      MOVQ 0x18(SP), AX           </span><br><span class="line">  malloc.go:1068    0x40b0ad        4889442438      MOVQ AX, 0x38(SP)           </span><br><span class="line">  malloc.go:1068    0x40b0b2        488b6c2420      MOVQ 0x20(SP), BP           </span><br><span class="line">  malloc.go:1068    0x40b0b7        4883c428        ADDQ $0x28, SP              </span><br><span class="line">  malloc.go:1068    0x40b0bb        c3          RET                 </span><br><span class="line">  malloc.go:1067    0x40b0bc        e87f420400      CALL runtime.morestack_noctxt(SB)   </span><br><span class="line">  malloc.go:1067    0x40b0c1        ebad            JMP runtime.newobject(SB)       </span><br></pre></td></tr></table></figure><p>逻辑的复杂度不言而喻，上面的汇编中可看到， <code>heap()</code> 函数调用了 <code>runtime.newobject()</code> 方法，它会调用 <code>mallocgc</code> 方法从 <code>mcache</code> 上申请内存，申请的内部逻辑前面文章已经讲述过。堆内存分配不仅分配上逻辑比栈空间分配复杂，它最致命的是会带来很大的管理成本，Go 语言要消耗很多的计算资源对其进行标记回收（也就是 GC 成本）。</p><blockquote><p>不要以为使用了堆内存就一定会导致性能低下，使用栈内存会带来性能优势。因为实际项目中，系统的性能瓶颈一般都不会出现在内存分配上。千万不要盲目优化，找到系统瓶颈，用数据驱动优化。</p></blockquote><h2 id="逃逸分析">逃逸分析</h2>]]></content>
+      
+      
       <categories>
-        <category>go</category>
+          
+          <category> go </category>
+          
       </categories>
-      <tags>
-        <tag>go</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>lyapunov</title>
-    <url>/2022/04/lyapunov/</url>
-    <content><![CDATA[<span id="more"></span>
-<h1>基于《Lyapunov Optimization: An Introduction》的学习</h1>
-<h2 id="Introduction">Introduction</h2>
-<p>  Lyapunov Optimization是指：使用Lyapunov function来优化控制一个动态的系统。系统在某一个特定的时间节点的状态（state）可以使用一个<strong>多维向量</strong>来描述，而Lyapunov function则是对这个多维向量所表达的状态的一个非负的、标量的描述。</p>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> go </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>lyapunov</title>
+      <link href="/2022/04/lyapunov/"/>
+      <url>/2022/04/lyapunov/</url>
+      
+        <content type="html"><![CDATA[<span id="more"></span><h1>基于《Lyapunov Optimization: An Introduction》的学习</h1><h2 id="Introduction">Introduction</h2><p>  Lyapunov Optimization是指：使用Lyapunov function来优化控制一个动态的系统。系统在某一个特定的时间节点的状态（state）可以使用一个<strong>多维向量</strong>来描述，而Lyapunov function则是对这个多维向量所表达的状态的一个非负的、标量的描述。</p>]]></content>
+      
+      
       <categories>
-        <category>算法</category>
+          
+          <category> 算法 </category>
+          
       </categories>
-      <tags>
-        <tag>算法</tag>
-        <tag>lyapunov</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Python语法学习</title>
-    <url>/2022/03/python/</url>
-    <content><![CDATA[<h1>Python</h1>
-<span id="more"></span>
-<h2 id="语法">语法</h2>
-<h3 id="turle-海龟画图">turle 海龟画图</h3>
-<ul>
-<li>坐标原点在中心，跟坐标系一样 默认向x轴正方向</li>
-</ul>
-<h3 id="可以使用Python中内置的函数对变量类型进行转换。">可以使用Python中内置的函数对变量类型进行转换。</h3>
-<ul>
-<li><code>int()</code>：将一个数值或字符串转换成整数，可以指定进制。</li>
-<li><code>float()</code>：将一个字符串转换成浮点数。</li>
-<li><code>str()</code>：将指定的对象转换成字符串形式，可以指定编码。</li>
-<li><code>chr()</code>：将整数转换成该编码对应的字符串（一个字符）。</li>
-<li><code>ord()</code>：将字符串（一个字符）转换成对应的编码（整数）。</li>
-</ul>
-<h3 id="占位符">占位符</h3>
-<ul>
-<li><code>%d</code>是整数的占位符</li>
-<li><code>%f</code>是小数的占位符</li>
-<li><code>%%</code>表示百分号<br>
-<code>print('%.1f华氏度 = %.1f摄氏度' % (f, c))</code><br>
-说明：在使用print函数输出时，也可以对字符串内容进行格式化处理，上面print函数中的字符串%.1f是一个占位符，稍后会由一个float类型的变量值替换掉它。同理，如果字符串中有%d，后面可以用一个int类型的变量值替换掉它，而%s会被字符串的值替换掉。除了这种格式化字符串的方式外，还可以用下面的方式来格式化字符串，其中{f:.1f}和{c:.1f}可以先看成是{f}和{c}，表示输出时会用变量f和变量c的值替换掉这两个占位符，后面的:.1f表示这是一个浮点数，小数点后保留1位有效数字。</li>
-</ul>
-<p><code>print(f'&#123;f:.1f&#125;华氏度 = &#123;c:.1f&#125;摄氏度')</code></p>
-<h3 id="运算符">运算符</h3>
-<table>
-<thead>
-<tr>
-<th>运算符</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>[]</code> <code>[:]</code></td>
-<td>下标，切片</td>
-</tr>
-<tr>
-<td><code>**</code></td>
-<td>指数</td>
-</tr>
-<tr>
-<td><code>~</code> <code>+</code> <code>-</code></td>
-<td>按位取反, 正负号</td>
-</tr>
-<tr>
-<td><code>*</code> <code>/</code> <code>%</code> <code>//</code></td>
-<td>乘，除，模，整除</td>
-</tr>
-<tr>
-<td><code>+</code> <code>-</code></td>
-<td>加，减</td>
-</tr>
-<tr>
-<td><code>&gt;&gt;</code> <code>&lt;&lt;</code></td>
-<td>右移，左移</td>
-</tr>
-<tr>
-<td><code>&amp;</code></td>
-<td>按位与</td>
-</tr>
-<tr>
-<td><code>^</code> <code>|</code></td>
-<td>按位异或，按位或</td>
-</tr>
-<tr>
-<td><code>&lt;=</code> <code>&lt;</code> <code>&gt;</code> <code>&gt;=</code></td>
-<td>小于等于，小于，大于，大于等于</td>
-</tr>
-<tr>
-<td><code>==</code> <code>!=</code></td>
-<td>等于，不等于</td>
-</tr>
-<tr>
-<td><code>is</code>  <code>is not</code></td>
-<td>身份运算符</td>
-</tr>
-<tr>
-<td><code>in</code> <code>not in</code></td>
-<td>成员运算符</td>
-</tr>
-<tr>
-<td><code>not</code> <code>or</code> <code>and</code></td>
-<td>逻辑运算符</td>
-</tr>
-<tr>
-<td><code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>//=</code> <code>**=</code> <code>&amp;=</code> `</td>
-<td>=<code> </code>^=<code> </code>&gt;&gt;=<code> </code>&lt;&lt;=`</td>
-</tr>
-</tbody>
-</table>
-<h3 id="if语句">if语句</h3>
-<p><code>if...elif...else</code><br>
-<code>if...else</code></p>
-<h3 id="循环结构">循环结构</h3>
-<p><em>for-in循环</em></p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="built_in">sum</span> = <span class="number">0</span></span><br><span class="line"><span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">101</span>):</span><br><span class="line">    <span class="built_in">sum</span> += x</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">sum</span>)</span><br></pre></td></tr></table></figure>
-<ul>
-<li><code>range(101)</code>：可以用来产生0到100范围的整数，需要注意的是取不到101。</li>
-<li><code>range(1, 101)</code>：可以用来产生1到100范围的整数，相当于前面是闭区间后面是开区间。</li>
-<li><code>range(1, 101, 2)</code>：可以用来产生1到100的奇数，其中2是步长，即每次数值递增的值。</li>
-<li><code>range(100, 0, -2)</code>：可以用来产生100到1的偶数，其中-2是步长，即每次数字递减的值。</li>
-</ul>
-<p><em>while循环</em></p>
-<h3 id="使用字符串">使用字符串</h3>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;hello, world!&#x27;</span></span><br><span class="line">s2 = <span class="string">&quot;hello, world!&quot;</span></span><br><span class="line"><span class="comment"># 以三个双引号或单引号开头的字符串可以折行</span></span><br><span class="line">s3 = <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">hello, </span></span><br><span class="line"><span class="string">world!</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="built_in">print</span>(s1, s2, s3, end=<span class="string">&#x27;&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<p>可以在字符串中使用<code>\</code>（反斜杠）来表示转义，也就是说<code>\</code>后面的字符不再是它原来的意义，例如：<code>\n</code>不是代表反斜杠和字符n，而是表示换行；而<code>\t</code>也不是代表反斜杠和字符t，而是表示制表符。所以如果想在字符串中表示<code>'</code>要写成<code>\'</code>，同理想表示<code>\</code>要写成<code>\\</code>。可以运行下面的代码看看会输出什么。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;\&#x27;hello, world!\&#x27;&#x27;</span></span><br><span class="line">s2 = <span class="string">&#x27;\n\\hello, world!\\\n&#x27;</span></span><br><span class="line"><span class="built_in">print</span>(s1, s2, end=<span class="string">&#x27;&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;hello &#x27;</span> * <span class="number">3</span></span><br><span class="line"><span class="built_in">print</span>(s1) <span class="comment"># hello hello hello </span></span><br><span class="line">s2 = <span class="string">&#x27;world&#x27;</span></span><br><span class="line">s1 += s2</span><br><span class="line"><span class="built_in">print</span>(s1) <span class="comment"># hello hello hello world</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;ll&#x27;</span> <span class="keyword">in</span> s1) <span class="comment"># True</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;good&#x27;</span> <span class="keyword">in</span> s1) <span class="comment"># False</span></span><br><span class="line">str2 = <span class="string">&#x27;abc123456&#x27;</span></span><br><span class="line"><span class="comment"># 从字符串中取出指定位置的字符(下标运算)</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>]) <span class="comment"># c</span></span><br><span class="line"><span class="comment"># 字符串切片(从指定的开始索引到指定的结束索引)</span></span><br><span class="line"><span class="comment"># 切片[]取左不取右</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>:<span class="number">5</span>]) <span class="comment"># c12</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>:]) <span class="comment"># c123456</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>::<span class="number">2</span>]) <span class="comment"># c246</span></span><br><span class="line"><span class="built_in">print</span>(str2[::<span class="number">2</span>]) <span class="comment"># ac246</span></span><br><span class="line"><span class="built_in">print</span>(str2[::-<span class="number">1</span>]) <span class="comment"># 654321cba</span></span><br><span class="line"><span class="built_in">print</span>(str2[-<span class="number">3</span>:-<span class="number">1</span>]) <span class="comment"># 45</span></span><br></pre></td></tr></table></figure>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">str1 = <span class="string">&#x27;hello, world!&#x27;</span></span><br><span class="line"><span class="comment"># 通过内置函数len计算字符串的长度</span></span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">len</span>(str1)) <span class="comment"># 13</span></span><br><span class="line"><span class="comment"># 获得字符串首字母大写的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.capitalize()) <span class="comment"># Hello, world!</span></span><br><span class="line"><span class="comment"># 获得字符串每个单词首字母大写的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.title()) <span class="comment"># Hello, World!</span></span><br><span class="line"><span class="comment"># 获得字符串变大写后的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.upper()) <span class="comment"># HELLO, WORLD!</span></span><br><span class="line"><span class="comment"># 从字符串中查找子串所在位置</span></span><br><span class="line"><span class="built_in">print</span>(str1.find(<span class="string">&#x27;or&#x27;</span>)) <span class="comment"># 8</span></span><br><span class="line"><span class="built_in">print</span>(str1.find(<span class="string">&#x27;shit&#x27;</span>)) <span class="comment"># -1</span></span><br><span class="line"><span class="comment"># 与find类似但找不到子串时会引发异常</span></span><br><span class="line"><span class="comment"># print(str1.index(&#x27;or&#x27;))</span></span><br><span class="line"><span class="comment"># print(str1.index(&#x27;shit&#x27;))</span></span><br><span class="line"><span class="comment"># 检查字符串是否以指定的字符串开头</span></span><br><span class="line"><span class="built_in">print</span>(str1.startswith(<span class="string">&#x27;He&#x27;</span>)) <span class="comment"># False</span></span><br><span class="line"><span class="built_in">print</span>(str1.startswith(<span class="string">&#x27;hel&#x27;</span>)) <span class="comment"># True</span></span><br><span class="line"><span class="comment"># 检查字符串是否以指定的字符串结尾</span></span><br><span class="line"><span class="built_in">print</span>(str1.endswith(<span class="string">&#x27;!&#x27;</span>)) <span class="comment"># True</span></span><br><span class="line"><span class="comment"># 将字符串以指定的宽度居中并在两侧填充指定的字符</span></span><br><span class="line"><span class="built_in">print</span>(str1.center(<span class="number">50</span>, <span class="string">&#x27;*&#x27;</span>))</span><br><span class="line"><span class="comment"># 将字符串以指定的宽度靠右放置左侧填充指定的字符</span></span><br><span class="line"><span class="built_in">print</span>(str1.rjust(<span class="number">50</span>, <span class="string">&#x27; &#x27;</span>))</span><br><span class="line">str2 = <span class="string">&#x27;abc123456&#x27;</span></span><br><span class="line"><span class="comment"># 检查字符串是否由数字构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isdigit())  <span class="comment"># False</span></span><br><span class="line"><span class="comment"># 检查字符串是否以字母构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isalpha())  <span class="comment"># False</span></span><br><span class="line"><span class="comment"># 检查字符串是否以数字和字母构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isalnum())  <span class="comment"># True</span></span><br><span class="line">str3 = <span class="string">&#x27;  jackfrued@126.com &#x27;</span></span><br><span class="line"><span class="built_in">print</span>(str3)</span><br><span class="line"><span class="comment"># 获得字符串修剪左右两侧空格之后的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str3.strip())</span><br></pre></td></tr></table></figure>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;%d * %d = %d&#x27;</span> % (a, b, a * b))</span><br></pre></td></tr></table></figure>
-<p>当然，我们也可以用字符串提供的方法来完成字符串的格式，代码如下所示。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;&#123;0&#125; * &#123;1&#125; = &#123;2&#125;&#x27;</span>.<span class="built_in">format</span>(a, b, a * b))</span><br></pre></td></tr></table></figure>
-<p>Python 3.6以后，格式化字符串还有更为简洁的书写方式，就是在字符串前加上字母<code>f</code>，我们可以使用下面的语法糖来简化上面的代码。</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&#x27;<span class="subst">&#123;a&#125;</span> * <span class="subst">&#123;b&#125;</span> = <span class="subst">&#123;a * b&#125;</span>&#x27;</span>)</span><br></pre></td></tr></table></figure>
-<h3 id="生成式和生成器">生成式和生成器</h3>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">f = [x <span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">10</span>)]</span><br><span class="line"><span class="built_in">print</span>(f)</span><br><span class="line">f = [x + y <span class="keyword">for</span> x <span class="keyword">in</span> <span class="string">&#x27;ABCDE&#x27;</span> <span class="keyword">for</span> y <span class="keyword">in</span> <span class="string">&#x27;1234567&#x27;</span>]</span><br><span class="line"><span class="built_in">print</span>(f)</span><br><span class="line"><span class="comment"># 用列表的生成表达式语法创建列表容器</span></span><br><span class="line"><span class="comment"># 用这种语法创建列表之后元素已经准备就绪所以需要耗费较多的内存空间</span></span><br><span class="line">f = [x ** <span class="number">2</span> <span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">1000</span>)]</span><br><span class="line"><span class="built_in">print</span>(sys.getsizeof(f))  <span class="comment"># 查看对象占用内存的字节数</span></span><br><span class="line"><span class="built_in">print</span>(f)</span><br><span class="line"><span class="comment"># 请注意下面的代码创建的不是一个列表而是一个生成器对象</span></span><br><span class="line"><span class="comment"># 通过生成器可以获取到数据但它不占用额外的空间存储数据</span></span><br><span class="line"><span class="comment"># 每次需要数据的时候就通过内部的运算得到数据(需要花费额外的时间)</span></span><br><span class="line">f = (x ** <span class="number">2</span> <span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">1000</span>))</span><br><span class="line"><span class="built_in">print</span>(sys.getsizeof(f))  <span class="comment"># 相比生成式生成器不占用存储数据的空间</span></span><br><span class="line"><span class="built_in">print</span>(f)</span><br><span class="line"><span class="keyword">for</span> val <span class="keyword">in</span> f:</span><br><span class="line">    <span class="built_in">print</span>(val)</span><br></pre></td></tr></table></figure>
-<h3 id="元组">元组</h3>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 定义元组</span></span><br><span class="line">t = (<span class="string">&#x27;骆昊&#x27;</span>, <span class="number">38</span>, <span class="literal">True</span>, <span class="string">&#x27;四川成都&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span>(t)</span><br><span class="line"><span class="comment"># 获取元组中的元素</span></span><br><span class="line"><span class="built_in">print</span>(t[<span class="number">0</span>])</span><br><span class="line"><span class="built_in">print</span>(t[<span class="number">3</span>])</span><br><span class="line"><span class="comment"># 遍历元组中的值</span></span><br><span class="line"><span class="keyword">for</span> member <span class="keyword">in</span> t:</span><br><span class="line">    <span class="built_in">print</span>(member)</span><br><span class="line"><span class="comment"># 重新给元组赋值</span></span><br><span class="line"><span class="comment"># t[0] = &#x27;王大锤&#x27;  # TypeError</span></span><br><span class="line"><span class="comment"># 变量t重新引用了新的元组原来的元组将被垃圾回收</span></span><br><span class="line">t = (<span class="string">&#x27;王大锤&#x27;</span>, <span class="number">20</span>, <span class="literal">True</span>, <span class="string">&#x27;云南昆明&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span>(t)</span><br><span class="line"><span class="comment"># 将元组转换成列表</span></span><br><span class="line">person = <span class="built_in">list</span>(t)</span><br><span class="line"><span class="built_in">print</span>(person)</span><br><span class="line"><span class="comment"># 列表是可以修改它的元素的</span></span><br><span class="line">person[<span class="number">0</span>] = <span class="string">&#x27;李小龙&#x27;</span></span><br><span class="line">person[<span class="number">1</span>] = <span class="number">25</span></span><br><span class="line"><span class="built_in">print</span>(person)</span><br><span class="line"><span class="comment"># 将列表转换成元组</span></span><br><span class="line">fruits_list = [<span class="string">&#x27;apple&#x27;</span>, <span class="string">&#x27;banana&#x27;</span>, <span class="string">&#x27;orange&#x27;</span>]</span><br><span class="line">fruits_tuple = <span class="built_in">tuple</span>(fruits_list)</span><br><span class="line"><span class="built_in">print</span>(fruits_tuple)</span><br></pre></td></tr></table></figure>
-<p>有了列表为什么需要元组？<br>
-1、元组中的元素是无法修改的<br>
-2、元组在创建时间和占用空间上面都优于列表</p>
-<h3 id="集合">集合</h3>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 创建集合的字面量语法</span></span><br><span class="line">set1 = &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">2</span>&#125;</span><br><span class="line"><span class="built_in">print</span>(set1)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;Length =&#x27;</span>, <span class="built_in">len</span>(set1))</span><br><span class="line"><span class="comment"># 创建集合的构造器语法(面向对象部分会进行详细讲解)</span></span><br><span class="line">set2 = <span class="built_in">set</span>(<span class="built_in">range</span>(<span class="number">1</span>, <span class="number">10</span>))</span><br><span class="line">set3 = <span class="built_in">set</span>((<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">2</span>, <span class="number">1</span>))</span><br><span class="line"><span class="built_in">print</span>(set2, set3)</span><br><span class="line"><span class="comment"># 创建集合的推导式语法(推导式也可以用于推导集合)</span></span><br><span class="line">set4 = &#123;num <span class="keyword">for</span> num <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">100</span>) <span class="keyword">if</span> num % <span class="number">3</span> == <span class="number">0</span> <span class="keyword">or</span> num % <span class="number">5</span> == <span class="number">0</span>&#125;</span><br><span class="line"><span class="built_in">print</span>(set4)</span><br></pre></td></tr></table></figure>
-<h3 id="字典">字典</h3>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 创建字典的字面量语法</span></span><br><span class="line">scores = &#123;<span class="string">&#x27;骆昊&#x27;</span>: <span class="number">95</span>, <span class="string">&#x27;白元芳&#x27;</span>: <span class="number">78</span>, <span class="string">&#x27;狄仁杰&#x27;</span>: <span class="number">82</span>&#125;</span><br><span class="line"><span class="built_in">print</span>(scores)</span><br><span class="line"><span class="comment"># 创建字典的构造器语法</span></span><br><span class="line">items1 = <span class="built_in">dict</span>(one=<span class="number">1</span>, two=<span class="number">2</span>, three=<span class="number">3</span>, four=<span class="number">4</span>)</span><br><span class="line"><span class="comment"># 通过zip函数将两个序列压成字典</span></span><br><span class="line">items2 = <span class="built_in">dict</span>(<span class="built_in">zip</span>([<span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;b&#x27;</span>, <span class="string">&#x27;c&#x27;</span>], <span class="string">&#x27;123&#x27;</span>))</span><br><span class="line"><span class="comment"># 创建字典的推导式语法</span></span><br><span class="line">items3 = &#123;num: num ** <span class="number">2</span> <span class="keyword">for</span> num <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">10</span>)&#125;</span><br><span class="line"><span class="built_in">print</span>(items1, items2, items3)</span><br><span class="line"><span class="comment"># 通过键可以获取字典中对应的值</span></span><br><span class="line"><span class="built_in">print</span>(scores[<span class="string">&#x27;骆昊&#x27;</span>])</span><br><span class="line"><span class="built_in">print</span>(scores[<span class="string">&#x27;狄仁杰&#x27;</span>])</span><br><span class="line"><span class="comment"># 对字典中所有键值对进行遍历</span></span><br><span class="line"><span class="keyword">for</span> key <span class="keyword">in</span> scores:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&#x27;<span class="subst">&#123;key&#125;</span>: <span class="subst">&#123;scores[key]&#125;</span>&#x27;</span>)</span><br><span class="line"><span class="comment"># 更新字典中的元素</span></span><br><span class="line">scores[<span class="string">&#x27;白元芳&#x27;</span>] = <span class="number">65</span></span><br><span class="line">scores[<span class="string">&#x27;诸葛王朗&#x27;</span>] = <span class="number">71</span></span><br><span class="line">scores.update(冷面=<span class="number">67</span>, 方启鹤=<span class="number">85</span>)</span><br><span class="line"><span class="built_in">print</span>(scores)</span><br><span class="line"><span class="keyword">if</span> <span class="string">&#x27;武则天&#x27;</span> <span class="keyword">in</span> scores:</span><br><span class="line">    <span class="built_in">print</span>(scores[<span class="string">&#x27;武则天&#x27;</span>])</span><br><span class="line"><span class="built_in">print</span>(scores.get(<span class="string">&#x27;武则天&#x27;</span>))</span><br><span class="line"><span class="comment"># get方法也是通过键获取对应的值但是可以设置默认值</span></span><br><span class="line"><span class="built_in">print</span>(scores.get(<span class="string">&#x27;武则天&#x27;</span>, <span class="number">60</span>))</span><br><span class="line"><span class="comment"># 删除字典中的元素</span></span><br><span class="line"><span class="built_in">print</span>(scores.popitem())</span><br><span class="line"><span class="built_in">print</span>(scores.popitem())</span><br><span class="line"><span class="built_in">print</span>(scores.pop(<span class="string">&#x27;骆昊&#x27;</span>, <span class="number">100</span>))</span><br><span class="line"><span class="comment"># 清空字典</span></span><br><span class="line">scores.clear()</span><br><span class="line"><span class="built_in">print</span>(scores)</span><br></pre></td></tr></table></figure>]]></content>
+      
+      
+        <tags>
+            
+            <tag> 算法 </tag>
+            
+            <tag> lyapunov </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>raft协议的学习</title>
+      <link href="/2022/03/raft/"/>
+      <url>/2022/03/raft/</url>
+      
+        <content type="html"><![CDATA[<style>h1{background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);color: #000;}h2{background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);}</style><p>本文基于论文<a href="https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14">In Search of an Understandable Consensus Algorithm</a>对raft协议进行分析学习</p><span id="more"></span> <h1>前置知识</h1><h2 id="分布式存储系统">分布式存储系统</h2><p>  分布式存储系统，是将数据分散存储在多台独立的设备上。传统的网络存储系统采用集中的存储服务器存放所有数据，存储服务器成为系统性能的瓶颈，也是可靠性和安全性的焦点，不能满足大规模存储应用的需要。分布式网络存储系统采用可扩展的系统结构，利用多台存储服务器分担存储负荷，利用位置服务器定位存储信息，它不但提高了系统的可靠性、可用性和存取效率，还易于扩展。</p><h2 id="分布式系统的三大特性CAP">分布式系统的三大特性CAP</h2><ul><li>一致性（Consistency）：多个数据副本是否能够保持一致；</li><li>可用性（Availability）：每次请求都能获取非错的响应，但无法保证获取的数据是否最新；</li><li>分区容忍性（Partition tolerance）：网络分区指分布式系统中的各个节点，任意分区（节点）网络故障时，系统仍需要可以对外提供服务。</li></ul><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301500346.png" alt = "CAP" width="400" height="300"/><p>  分布式系统不可能同时满足这三个特性，最多只能同时满足其中两项，<strong>分区容忍性必不可少</strong>，因为需要总是假设网络不是可靠的，所以最终要在可用性和一致性之间做选择。</p><p>可用性与一致性是冲突的，在多节点之间进行数据同步时</p><ul><li>为了保持一致性（CP），就需要让系统暂停服务，等待数据同步完成</li><li>为了保证可用性（AP），同步过程中继续提供服务，读取的数据可能不一致</li></ul><table><thead><tr><th>CAP</th><th>适用场景</th><th>解释</th></tr></thead><tbody><tr><td>CA</td><td>几乎不存在</td><td>在分布式系统中，P必然存在，除非适用单机，要提升分区可靠性，需要通过提升基础设施的可靠性实现</td></tr><tr><td>CP</td><td>分布式数据库（redis、HBase、zk、etcd）</td><td>分布式数据库极端情况下优先保证数据一致性</td></tr><tr><td>AP</td><td>12306购票、淘宝购物</td><td>保证服务可用，购票下单后，一段时间后系统提示余票不足</td></tr></tbody></table><h2 id="分布式一致性raft">分布式一致性raft</h2><p>  raft牺牲了A，保留了CP。分布式存储系统通常通过维护多个副本来进行容错，提高系统的可用性。要实现此目标，就必须要解决分布式存储系统的最核心问题：维护多个副本的一致。</p><h2 id="什么是分布式一致性？">什么是分布式一致性？</h2><p>  分布式系统的一致性是构建具有容错性（fault-tolerant）的分布式系统的基础。在一个具有一致性的性质的集群里，同一时刻所有的节点对存储在其中的某个值都有相同的结果，即对其分享的存储保持一致。集群具有自动恢复的性质，当少数节点失效的时候不影响集群的正常工作，当大多数集群中的节点失效的时候，集群则会停止服务（不会返回一个错误的结果）。<br>一致性协议就是用来干这事的，用来保证即使在部分（确切来说是小部分）副本宕机的情况下，系统仍然能正常对外提供服务。一致性协议通常基于replicated state machines，即所有节点都从同一个state出发，都经过同样的一些操作序列（log），最后到达同样的state。</p><h2 id="分布式高并发">分布式高并发</h2><p>//todo<br>同样的执行顺序，分布式系统如何实现高并发？</p><h1>Raft协议</h1><h2 id="Raft协议概述">Raft协议概述</h2><blockquote><p>It produces a result equivalent to (multi-)Paxos, and it is as efficient as Paxos, but its structure is different from Paxos; this makes Raft more understandable than Paxos and also provides a better foundation for building practical systems</p></blockquote><p>  Raft协议在功能上是等同于（Multi-）Paxos，并且在性能、可靠性、可用性方面是不输于Paxos的。但是raft协议的结构却跟Paxos是不同的，这使得raft协议更易于理解，并且让开发人员可以在很短的时间内开发出一个可用的系统。在raft出现之前，Paxos一直在共识算法中保持着统治级的地位，不幸的是，Paxos很难去理解。</p><blockquote><p>It was important not just for the algorithm to work, but for it to be obvious why it works.</p></blockquote><p>  重要的不仅是算法能够有效，更重要的是让大家很容易就知道他是如何运行的。</p><blockquote><p>In designing Raft we applied specific techniques to improve understandability, including decomposition (Raft separates leader election, log replication, and safety) and state space reduction (relative to Paxos, Raft reduces the degree of nondeterminism and the ways servers can be inconsistent with each other)</p></blockquote><p>  Raft算法主要做了两个工作去让大家去易于理解</p><ul><li>问题分解（decomposition）：将&quot;复制集中节点一致性&quot;这个复杂的问题划分为数个可以被独立解释、理解、解决的子问题。raft中子问题包括：leader elect，log replication，safety，membership changes</li><li>状态简化（state space reduction）：对算法做出一些限制，减少需要考虑的状态数，使得算法更加清晰，更少的不确定性（比如，保证新选举出来的leader会包含所有commited log entry）。</li></ul><h2 id="Basics">Basics</h2><blockquote><p>任何一个节点都处于以下三种状态之一</p></blockquote><ul><li>leader</li><li>follower</li><li>candidate</li></ul><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301710546.png" alt=""></p><p>  可以看出所有节点启动时都是follower状态；在一段时间内如果没有收到来自leader的心跳，从follower切换到candidate，发起选举；如果收到majority的造成票（含自己的一票）则切换到leader状态；如果发现其他节点比自己更新，则主动切换到follower。</p><p>  总之，系统中最多只有一个leader，如果在一段时间里发现没有leader，则大家通过选举-投票选出leader。leader会不停的给follower发心跳消息，表明自己的存活状态。如果leader故障，那么follower会转换成candidate，重新选出leader。</p><blockquote><p>term（任期的概念）</p></blockquote><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301720661.png" alt=""></p><p>  从上面可以看出，哪个节点做leader是大家投票选举出来的，每个leader工作一段时间，然后选出新的leader继续负责。这根民主社会的选举很像，每一届新的履职期称之为一届任期，在raft协议中，也是这样的，对应的术语叫term。</p><p>  term（任期）以选举（election）开始，然后就是一段或长或短的稳定工作期（normal Operation）。从上图可以看到，任期是递增的，这就充当了逻辑时钟的作用；另外，term 3展示了一种情况，就是说没有选举出leader就结束了，然后会发起新的选举，后面会解释这种split vote的情况。</p><blockquote><p>节点之间通信通过RPC，basic consensus algorithm使用两种RPC请求。</p></blockquote><ul><li>RequestVote RPC：由candidate在选举期间发起的；</li><li>AppendEntries RPC：被leader发起复制日志，并提供心跳。</li><li>(第三个RPC，用于在服务器之间传输快照。如果服务器没有及时收到响应，则会重试RPC，并并行发出RPC以获得最佳性能)</li></ul><blockquote><p>复制状态机架构（Replicated state machine architecture）</p></blockquote><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311546086.png" alt=""></p><h2 id="Leader-election">Leader election</h2><p>  一个节点启动，开始是follower，一个节点一直保持follower状态只要它能从leader或者candidate收到有效的RPC请求。</p><p>  leader一段时间给所有的follower发送一个心跳包(AppendEntries RPCs that carry no log entries);如果一个follower在一段时间没有收到RPC请求，则称之为election timeout(选举超时)，然后它就假设系统中没有leader，并且发起一个选举来选择新的leader。</p><p>  选举开始，发起选举的follower节点的term+1，并且转换为candidate状态，然后该节点为自己投票并且在集群中给其他节点发送RequestVote RPC请求。这个节点会一直保持在candidate状态，直到以下三个事情发生：</p><ul><li><p>it wins the election。该节点赢得选举；</p><ul><li>而一个节点(candidate)赢得选举的情况是它赢得了集群中大多数（&gt;1/2）节点(相同的term)的投票(包含自己的票)。每个节点只能投一票。</li><li>//todo The majority rule ensures that at most one candidate can win the election for a particular term（候选者知道的信息不能比自己的少）</li><li>first-come-first-served先来先得</li></ul></li><li><p>another server establishes itself as leader。收到其他自称为leader的AppendEntries RPC，只有当这个leader的term比自己大或者相等，才会承认该leader并进入follower状态，否则继续保持candidate状态。</p></li><li><p>a period of time goes by with no winner。一段时间过后，没有节点赢得选举，导致这一结果的原因是，如果许多follower同时称为candidate，选票就会被平分，所以就没有candidate获得大多数的选票。当这种情况发生的时候，每个candidate会超时并且重新发起一个新的选举（term+1）来发起RequestVote RPC。然而，如果没有额外的措施，这种情况可能会无限期地重复。所以采用随机选举超时（randomized election timeouts）的方式来确保split vote很少出现并能够被快速解决。</p></li></ul><h2 id="Log-replication">Log replication</h2><p>   一旦一个节点当选leader，它就开始处理客户端的请求（request）。每一个客户端的请求包含着复制状态机的一条待执行的命令（command）。leader将这个指令当作一个新的entry（包含Term ID和command），然后发送AppendEntries RPC告诉其他的节点复制entry。当entry被安全地复制之后，leader应用entry到状态机，并且返回执行的结果给客户端。如果follower宕机，执行偏慢，或者网络丢包，leader将一直发送AppendEntries RPC直到所有的follower都最终存储了所有的log entries。（即跟leader的entries一致）。</p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311504795.png" alt=""></p><p>Figure6：日志由entries组成，并且被序列化。每一条entry内都含有term ID和command</p><blockquote><p>The leader decides when it is safe to apply a log entry to the state machines; such an entry is called committed.</p></blockquote><p>  leader决定何时安全地apply日志到状态机,这个entry就被称为已提交</p><blockquote><p>A log entry is committed once the leader that created the entry has replicated it on a majority of the servers.</p></blockquote><p>  一个leader创建的entry一旦被复制到大部分的节点上后，这个entry就被称为 <em><strong>committed</strong></em>。</p><blockquote><p>Once a follower learns that a log entry is committed, it applies the entry to its local state machine<br>一旦follower知道一个entry被committed，它就应用这个entry到本地状态机上。</p></blockquote><h2 id="Safety">Safety</h2><p>  前面的章节里描述了 Raft 算法是如何选举和复制日志的。然而，到目前为止描述的机制并不能充分的保证每一个状态机会按照相同的顺序执行相同的指令。（the same commands in the same order）</p><ul><li>eg：一个跟随者可能会进入不可用状态同时领导人已经提交了若干的日志条目，然后这个跟随者可能会被选举为领导人并且覆盖这些日志条目；因此，不同的状态机可能会执行不同的指令序列（<a href="#state-machine-safety">Figure 8</a>）。</li></ul><blockquote><p>选举限制（Election restriction）</p></blockquote><p>在任何基于领导人的一致性算法中，领导人都必须存储所有已经提交的日志条目。<br>Raft 使用了一种简单的方法，它可以保证在选举的时候新的领导人拥有所有之前任期中已经提交的日志条目，而不需要传送这些日志条目给领导人。这意味着日志条目的传送是单向的，只从领导人传给跟随者，并且领导人从不会覆盖自身本地日志中已经存在的条目。</p><blockquote><p>提交之前任期内的日志条目（Committing entries from previous terms）</p></blockquote><blockquote><p>安全性论证（Safety argument）</p></blockquote><hr><p>衡量一个分布式算法，有许多属性，如</p><ul><li>safety：nothing bad happens,</li><li>liveness： something good eventually happens.</li></ul><p>  在任何系统模型下，都需要满足safety属性，即在任何情况下，系统都不能出现不可逆的错误，也不能向客户端返回错误的内容。比如，raft保证被复制到大多数节点的日志不会被回滚，那么就是safety属性。而raft最终会让所有节点状态一致，这属于liveness属性。<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311538296.png" alt=""></p><h3 id="Election-Safety">Election Safety</h3><p>  选举安全性，即<strong>任意一任期内最多一个leader被选出</strong>。这一点非常重要，在一个复制集中任何时刻只能有一个leader。系统中同时有多余一个leader，被称之为脑裂（brain split），这是非常严重的问题，会导致数据的覆盖丢失。在raft中，两点保证了这个属性：</p><ul><li>一个节点某一任期内最多只能投一票</li><li>只有获得majority投票的节点才能成为leader</li></ul><h3 id="Leader-Append-Only">Leader Append-Only</h3><p>leader从来不覆写和删除entries，只会append新的entries。</p><h3 id="Log-Matching">Log Matching</h3><ul><li>If two entries in different logs have the same index and term, then they store the same command.</li><li>If two entries in different logs have the same index and term, then the logs are identical in all preceding entries.</li></ul><p>  首先，leader在某一term的任一位置只会创建一个log entry，且log entry是append-only。其次，consistency check。leader在AppendEntries中包含最新log entry之前的一个log 的term和index，如果follower在对应的term index找不到日志，那么就会告知leader不一致。<br>  在没有异常的情况下，log matching是很容易满足的，但如果出现了node crash，情况就会变得负责。比如下图<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311652938.png" alt=""><br>上图的a-f为某个follower可能存在的六种状态</p><ul><li>比leader日志少，如ab</li><li>比leader日志多，如cd</li><li>某些位置比leader多，某些日志比leader少，如ef（多少是针对任期而言的）</li></ul><blockquote><p>In Raft, the leader handles inconsistencies by forcing the followers’ logs to duplicate its own。</p></blockquote><p>在Raft中，当出现了leader与follower不一致的情况，leader通过强制让follower复制logs和自己一样来处理不一致性的问题。</p><p>leader通过维护一个<em>nextIndex</em>数组来记录下一个leader要发送到每个follower的index。初始化为leader最后一个log index加1。</p><p>流程如下</p><blockquote><p>s1 leader 初始化nextIndex[x]为 leader最后一个log index + 1<br>s2 AppendEntries里prevLogTerm prevLogIndex来自 logs[nextIndex[x] - 1]<br>s3 如果follower判断prevLogIndex位置的log term不等于prevLogTerm，那么返回 False，否则返回True<br>s4 leader收到follower的回复，如果返回值是False，则nextIndex[x] -= 1, 跳转到s2. 否则<br>s5 同步nextIndex[x]后的<strong>所有log entries</strong>（一次性同步所有的）</p></blockquote><h3 id="leader-completeness">leader completeness</h3><p>leader完整性：如果一个log entry在某个任期被提交（committed），那么这条日志一定会出现在所有更高term的leader的日志里面。这个跟leader election、log replication都有关。</p><ul><li>一个日志被复制到majority节点才算committed</li><li>一个节点得到majority的投票才能成为leader，而节点A给节点B投票的其中一个前提是，B的日志不能比A的日志旧。下面的引文指处了如何判断日志的新旧</li></ul><p>raft与其他协议（Viewstamped Replication、mongodb）不同，raft始终保证leade包含最新的已提交的日志，因此leader不会从follower catchup日志，这也大大简化了系统的复杂度。</p><h3 id="state-machine-safety">state machine safety</h3><p>如果一个节点已经apply一个给定index的log entry给它的状态机，不能有其他节点在相同的index apply不同的log entry。<br><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311933175.png" alt=""></p><p>  上图是一个较为复杂的情况。在时刻(a), s1是leader，在term2提交的日志只赋值到了s1 s2两个节点就crash了。在时刻（b), s5成为了term 3的leader，日志只赋值到了s5，然后crash。然后在©时刻，s1又成为了term 4的leader，开始赋值日志，于是把term2的日志复制到了s3，此刻，可以看出term2对应的日志已经被复制到了majority，因此是committed，可以被状态机应用。不幸的是，接下来（d）时刻，s1又crash了，s5重新当选，然后将term3的日志复制到所有节点，这就出现了一种奇怪的现象：被复制到大多数节点（或者说可能已经应用）的日志被回滚。</p><p>  究其根本，是因为term4时的leader s1在（C）时刻提交了之前term2任期的日志。为了杜绝这种情况的发生：</p><blockquote><p>Raft never commits log entries from previous terms by counting replicas.<br>Only log entries from the leader’s current term are committed by counting replicas; once an entry from the current term has been committed in this way, then all prior entries are committed indirectly because of the Log Matching Property.</p></blockquote><p>  也就是说，某个leader选举成功之后，不会直接提交前任leader时期的日志，而是通过提交当前任期的日志的时候“顺手”把之前的日志也提交了，具体怎么实现了，在log matching部分有详细介绍。那么问题来了，如果leader被选举后没有收到客户端的请求呢，论文中有提到，在任期开始的时候发立即尝试复制、提交一条空的log。</p><blockquote><p>Raft handles this by having each leader commit a blank no-op entry into the log at the start of its term.</p></blockquote><p>  因此，在上图中，不会出现（C）时刻的情况，即term4任期的leader s1不会复制term2的日志到s3。而是如同(e)描述的情况，通过复制-提交 term4的日志顺便提交term2的日志。如果term4的日志提交成功，那么term2的日志也一定提交成功，此时即使s1crash，s5也不会重新当选。</p><h2 id="corner-case">corner case</h2><p>Section 5.4 discusses somesubtleties when applying this rule after leader changes,and it also shows that this definition of commitment is safe.</p><h3 id="stale-leader">stale leader</h3><p>  raft保证Election safety，即一个任期内最多只有一个leader，但在网络分割（network partition）的情况下，可能会出现两个leader，但两个leader所处的任期是不同的。如下图所示</p><h3 id="leader-crash">leader crash</h3><p>  follower的crash处理方式相对简单，leader只要不停的给follower发消息即可。当leader crash的时候，事情就会变得复杂。在<a href="https://www.cnblogs.com/mindwind/p/5231986.html">这篇文章</a>中，作者就给出了一个更新请求的流程图。</p><h1>总结</h1><p>对raft协议有个简单的了解<a href="http://thesecretlivesofdata.com/raft/">动画</a></p><h1>References</h1><p><a href="https://www.cnblogs.com/xybaby/p/10124083.html#_labelTop">https://www.cnblogs.com/xybaby/p/10124083.html#_labelTop</a><br><a href="https://www.cnblogs.com/mindwind/p/5231986.html">https://www.cnblogs.com/mindwind/p/5231986.html</a><br><a href="http://thesecretlivesofdata.com/raft/">http://thesecretlivesofdata.com/raft/</a><br><a href="https://raft.github.io/">https://raft.github.io/</a><br><a href="https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14">https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14</a></p><p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204252141295.png" alt=""></p>]]></content>
+      
+      
       <categories>
-        <category>python</category>
+          
+          <category> 分布式 </category>
+          
+          <category> raft </category>
+          
       </categories>
-      <tags>
-        <tag>python</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>raft协议的学习</title>
-    <url>/2022/03/raft/</url>
-    <content><![CDATA[<style>
-h1{
-background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);
-color: #000;
-}
-h2{
-background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
-}
-</style>
-<p>本文基于论文<a href="https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14">In Search of an Understandable Consensus Algorithm</a>对raft协议进行分析学习</p>
-<span id="more"></span> 
-<h1>前置知识</h1>
-<h2 id="分布式存储系统">分布式存储系统</h2>
-<p>  分布式存储系统，是将数据分散存储在多台独立的设备上。传统的网络存储系统采用集中的存储服务器存放所有数据，存储服务器成为系统性能的瓶颈，也是可靠性和安全性的焦点，不能满足大规模存储应用的需要。分布式网络存储系统采用可扩展的系统结构，利用多台存储服务器分担存储负荷，利用位置服务器定位存储信息，它不但提高了系统的可靠性、可用性和存取效率，还易于扩展。</p>
-<h2 id="分布式系统的三大特性CAP">分布式系统的三大特性CAP</h2>
-<ul>
-<li>一致性（Consistency）：多个数据副本是否能够保持一致；</li>
-<li>可用性（Availability）：每次请求都能获取非错的响应，但无法保证获取的数据是否最新；</li>
-<li>分区容忍性（Partition tolerance）：网络分区指分布式系统中的各个节点，任意分区（节点）网络故障时，系统仍需要可以对外提供服务。</li>
-</ul>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301500346.png" alt = "CAP" width="400" height="300"/>
-<p>  分布式系统不可能同时满足这三个特性，最多只能同时满足其中两项，<strong>分区容忍性必不可少</strong>，因为需要总是假设网络不是可靠的，所以最终要在可用性和一致性之间做选择。</p>
-<p>可用性与一致性是冲突的，在多节点之间进行数据同步时</p>
-<ul>
-<li>为了保持一致性（CP），就需要让系统暂停服务，等待数据同步完成</li>
-<li>为了保证可用性（AP），同步过程中继续提供服务，读取的数据可能不一致</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>CAP</th>
-<th>适用场景</th>
-<th>解释</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>CA</td>
-<td>几乎不存在</td>
-<td>在分布式系统中，P必然存在，除非适用单机，要提升分区可靠性，需要通过提升基础设施的可靠性实现</td>
-</tr>
-<tr>
-<td>CP</td>
-<td>分布式数据库（redis、HBase、zk、etcd）</td>
-<td>分布式数据库极端情况下优先保证数据一致性</td>
-</tr>
-<tr>
-<td>AP</td>
-<td>12306购票、淘宝购物</td>
-<td>保证服务可用，购票下单后，一段时间后系统提示余票不足</td>
-</tr>
-</tbody>
-</table>
-<h2 id="分布式一致性raft">分布式一致性raft</h2>
-<p>  raft牺牲了A，保留了CP。分布式存储系统通常通过维护多个副本来进行容错，提高系统的可用性。要实现此目标，就必须要解决分布式存储系统的最核心问题：维护多个副本的一致。</p>
-<h2 id="什么是分布式一致性？">什么是分布式一致性？</h2>
-<p>  分布式系统的一致性是构建具有容错性（fault-tolerant）的分布式系统的基础。在一个具有一致性的性质的集群里，同一时刻所有的节点对存储在其中的某个值都有相同的结果，即对其分享的存储保持一致。集群具有自动恢复的性质，当少数节点失效的时候不影响集群的正常工作，当大多数集群中的节点失效的时候，集群则会停止服务（不会返回一个错误的结果）。<br>
-一致性协议就是用来干这事的，用来保证即使在部分（确切来说是小部分）副本宕机的情况下，系统仍然能正常对外提供服务。一致性协议通常基于replicated state machines，即所有节点都从同一个state出发，都经过同样的一些操作序列（log），最后到达同样的state。</p>
-<h2 id="分布式高并发">分布式高并发</h2>
-<p>//todo<br>
-同样的执行顺序，分布式系统如何实现高并发？</p>
-<h1>Raft协议</h1>
-<h2 id="Raft协议概述">Raft协议概述</h2>
-<blockquote>
-<p>It produces a result equivalent to (multi-)Paxos, and it is as efficient as Paxos, but its structure is different from Paxos; this makes Raft more understandable than Paxos and also provides a better foundation for building practical systems</p>
-</blockquote>
-<p>  Raft协议在功能上是等同于（Multi-）Paxos，并且在性能、可靠性、可用性方面是不输于Paxos的。但是raft协议的结构却跟Paxos是不同的，这使得raft协议更易于理解，并且让开发人员可以在很短的时间内开发出一个可用的系统。在raft出现之前，Paxos一直在共识算法中保持着统治级的地位，不幸的是，Paxos很难去理解。</p>
-<blockquote>
-<p>It was important not just for the algorithm to work, but for it to be obvious why it works.</p>
-</blockquote>
-<p>  重要的不仅是算法能够有效，更重要的是让大家很容易就知道他是如何运行的。</p>
-<blockquote>
-<p>In designing Raft we applied specific techniques to improve understandability, including decomposition (Raft separates leader election, log replication, and safety) and state space reduction (relative to Paxos, Raft reduces the degree of nondeterminism and the ways servers can be inconsistent with each other)</p>
-</blockquote>
-<p>  Raft算法主要做了两个工作去让大家去易于理解</p>
-<ul>
-<li>问题分解（decomposition）：将&quot;复制集中节点一致性&quot;这个复杂的问题划分为数个可以被独立解释、理解、解决的子问题。raft中子问题包括：leader elect，log replication，safety，membership changes</li>
-<li>状态简化（state space reduction）：对算法做出一些限制，减少需要考虑的状态数，使得算法更加清晰，更少的不确定性（比如，保证新选举出来的leader会包含所有commited log entry）。</li>
-</ul>
-<h2 id="Basics">Basics</h2>
-<blockquote>
-<p>任何一个节点都处于以下三种状态之一</p>
-</blockquote>
-<ul>
-<li>leader</li>
-<li>follower</li>
-<li>candidate</li>
-</ul>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301710546.png" alt=""></p>
-<p>  可以看出所有节点启动时都是follower状态；在一段时间内如果没有收到来自leader的心跳，从follower切换到candidate，发起选举；如果收到majority的造成票（含自己的一票）则切换到leader状态；如果发现其他节点比自己更新，则主动切换到follower。</p>
-<p>  总之，系统中最多只有一个leader，如果在一段时间里发现没有leader，则大家通过选举-投票选出leader。leader会不停的给follower发心跳消息，表明自己的存活状态。如果leader故障，那么follower会转换成candidate，重新选出leader。</p>
-<blockquote>
-<p>term（任期的概念）</p>
-</blockquote>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301720661.png" alt=""></p>
-<p>  从上面可以看出，哪个节点做leader是大家投票选举出来的，每个leader工作一段时间，然后选出新的leader继续负责。这根民主社会的选举很像，每一届新的履职期称之为一届任期，在raft协议中，也是这样的，对应的术语叫term。</p>
-<p>  term（任期）以选举（election）开始，然后就是一段或长或短的稳定工作期（normal Operation）。从上图可以看到，任期是递增的，这就充当了逻辑时钟的作用；另外，term 3展示了一种情况，就是说没有选举出leader就结束了，然后会发起新的选举，后面会解释这种split vote的情况。</p>
-<blockquote>
-<p>节点之间通信通过RPC，basic consensus algorithm使用两种RPC请求。</p>
-</blockquote>
-<ul>
-<li>RequestVote RPC：由candidate在选举期间发起的；</li>
-<li>AppendEntries RPC：被leader发起复制日志，并提供心跳。</li>
-<li>(第三个RPC，用于在服务器之间传输快照。如果服务器没有及时收到响应，则会重试RPC，并并行发出RPC以获得最佳性能)</li>
-</ul>
-<blockquote>
-<p>复制状态机架构（Replicated state machine architecture）</p>
-</blockquote>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311546086.png" alt=""></p>
-<h2 id="Leader-election">Leader election</h2>
-<p>  一个节点启动，开始是follower，一个节点一直保持follower状态只要它能从leader或者candidate收到有效的RPC请求。</p>
-<p>  leader一段时间给所有的follower发送一个心跳包(AppendEntries RPCs that carry no log entries);如果一个follower在一段时间没有收到RPC请求，则称之为election timeout(选举超时)，然后它就假设系统中没有leader，并且发起一个选举来选择新的leader。</p>
-<p>  选举开始，发起选举的follower节点的term+1，并且转换为candidate状态，然后该节点为自己投票并且在集群中给其他节点发送RequestVote RPC请求。这个节点会一直保持在candidate状态，直到以下三个事情发生：</p>
-<ul>
-<li>
-<p>it wins the election。该节点赢得选举；</p>
-<ul>
-<li>而一个节点(candidate)赢得选举的情况是它赢得了集群中大多数（&gt;1/2）节点(相同的term)的投票(包含自己的票)。每个节点只能投一票。</li>
-<li>//todo The majority rule ensures that at most one candidate can win the election for a particular term（候选者知道的信息不能比自己的少）</li>
-<li>first-come-first-served先来先得</li>
-</ul>
-</li>
-<li>
-<p>another server establishes itself as leader。收到其他自称为leader的AppendEntries RPC，只有当这个leader的term比自己大或者相等，才会承认该leader并进入follower状态，否则继续保持candidate状态。</p>
-</li>
-<li>
-<p>a period of time goes by with no winner。一段时间过后，没有节点赢得选举，导致这一结果的原因是，如果许多follower同时称为candidate，选票就会被平分，所以就没有candidate获得大多数的选票。当这种情况发生的时候，每个candidate会超时并且重新发起一个新的选举（term+1）来发起RequestVote RPC。然而，如果没有额外的措施，这种情况可能会无限期地重复。所以采用随机选举超时（randomized election timeouts）的方式来确保split vote很少出现并能够被快速解决。</p>
-</li>
-</ul>
-<h2 id="Log-replication">Log replication</h2>
-<p>   一旦一个节点当选leader，它就开始处理客户端的请求（request）。每一个客户端的请求包含着复制状态机的一条待执行的命令（command）。leader将这个指令当作一个新的entry（包含Term ID和command），然后发送AppendEntries RPC告诉其他的节点复制entry。当entry被安全地复制之后，leader应用entry到状态机，并且返回执行的结果给客户端。如果follower宕机，执行偏慢，或者网络丢包，leader将一直发送AppendEntries RPC直到所有的follower都最终存储了所有的log entries。（即跟leader的entries一致）。</p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311504795.png" alt=""></p>
-<p>Figure6：日志由entries组成，并且被序列化。每一条entry内都含有term ID和command</p>
-<blockquote>
-<p>The leader decides when it is safe to apply a log entry to the state machines; such an entry is called committed.</p>
-</blockquote>
-<p>  leader决定何时安全地apply日志到状态机,这个entry就被称为已提交</p>
-<blockquote>
-<p>A log entry is committed once the leader that created the entry has replicated it on a majority of the servers.</p>
-</blockquote>
-<p>  一个leader创建的entry一旦被复制到大部分的节点上后，这个entry就被称为 <em><strong>committed</strong></em>。</p>
-<blockquote>
-<p>Once a follower learns that a log entry is committed, it applies the entry to its local state machine<br>
-一旦follower知道一个entry被committed，它就应用这个entry到本地状态机上。</p>
-</blockquote>
-<h2 id="Safety">Safety</h2>
-<p>  前面的章节里描述了 Raft 算法是如何选举和复制日志的。然而，到目前为止描述的机制并不能充分的保证每一个状态机会按照相同的顺序执行相同的指令。（the same commands in the same order）</p>
-<ul>
-<li>eg：一个跟随者可能会进入不可用状态同时领导人已经提交了若干的日志条目，然后这个跟随者可能会被选举为领导人并且覆盖这些日志条目；因此，不同的状态机可能会执行不同的指令序列（<a href="#state-machine-safety">Figure 8</a>）。</li>
-</ul>
-<blockquote>
-<p>选举限制（Election restriction）</p>
-</blockquote>
-<p>在任何基于领导人的一致性算法中，领导人都必须存储所有已经提交的日志条目。<br>
-Raft 使用了一种简单的方法，它可以保证在选举的时候新的领导人拥有所有之前任期中已经提交的日志条目，而不需要传送这些日志条目给领导人。这意味着日志条目的传送是单向的，只从领导人传给跟随者，并且领导人从不会覆盖自身本地日志中已经存在的条目。</p>
-<blockquote>
-<p>提交之前任期内的日志条目（Committing entries from previous terms）</p>
-</blockquote>
-<blockquote>
-<p>安全性论证（Safety argument）</p>
-</blockquote>
-<hr>
-<p>衡量一个分布式算法，有许多属性，如</p>
-<ul>
-<li>safety：nothing bad happens,</li>
-<li>liveness： something good eventually happens.</li>
-</ul>
-<p>  在任何系统模型下，都需要满足safety属性，即在任何情况下，系统都不能出现不可逆的错误，也不能向客户端返回错误的内容。比如，raft保证被复制到大多数节点的日志不会被回滚，那么就是safety属性。而raft最终会让所有节点状态一致，这属于liveness属性。<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311538296.png" alt=""></p>
-<h3 id="Election-Safety">Election Safety</h3>
-<p>  选举安全性，即<strong>任意一任期内最多一个leader被选出</strong>。这一点非常重要，在一个复制集中任何时刻只能有一个leader。系统中同时有多余一个leader，被称之为脑裂（brain split），这是非常严重的问题，会导致数据的覆盖丢失。在raft中，两点保证了这个属性：</p>
-<ul>
-<li>一个节点某一任期内最多只能投一票</li>
-<li>只有获得majority投票的节点才能成为leader</li>
-</ul>
-<h3 id="Leader-Append-Only">Leader Append-Only</h3>
-<p>leader从来不覆写和删除entries，只会append新的entries。</p>
-<h3 id="Log-Matching">Log Matching</h3>
-<ul>
-<li>If two entries in different logs have the same index and term, then they store the same command.</li>
-<li>If two entries in different logs have the same index and term, then the logs are identical in all preceding entries.</li>
-</ul>
-<p>  首先，leader在某一term的任一位置只会创建一个log entry，且log entry是append-only。其次，consistency check。leader在AppendEntries中包含最新log entry之前的一个log 的term和index，如果follower在对应的term index找不到日志，那么就会告知leader不一致。<br>
-  在没有异常的情况下，log matching是很容易满足的，但如果出现了node crash，情况就会变得负责。比如下图<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311652938.png" alt=""><br>
-上图的a-f为某个follower可能存在的六种状态</p>
-<ul>
-<li>比leader日志少，如ab</li>
-<li>比leader日志多，如cd</li>
-<li>某些位置比leader多，某些日志比leader少，如ef（多少是针对任期而言的）</li>
-</ul>
-<blockquote>
-<p>In Raft, the leader handles inconsistencies by forcing the followers’ logs to duplicate its own。</p>
-</blockquote>
-<p>在Raft中，当出现了leader与follower不一致的情况，leader通过强制让follower复制logs和自己一样来处理不一致性的问题。</p>
-<p>leader通过维护一个<em>nextIndex</em>数组来记录下一个leader要发送到每个follower的index。初始化为leader最后一个log index加1。</p>
-<p>流程如下</p>
-<blockquote>
-<p>s1 leader 初始化nextIndex[x]为 leader最后一个log index + 1<br>
-s2 AppendEntries里prevLogTerm prevLogIndex来自 logs[nextIndex[x] - 1]<br>
-s3 如果follower判断prevLogIndex位置的log term不等于prevLogTerm，那么返回 False，否则返回True<br>
-s4 leader收到follower的回复，如果返回值是False，则nextIndex[x] -= 1, 跳转到s2. 否则<br>
-s5 同步nextIndex[x]后的<strong>所有log entries</strong>（一次性同步所有的）</p>
-</blockquote>
-<h3 id="leader-completeness">leader completeness</h3>
-<p>leader完整性：如果一个log entry在某个任期被提交（committed），那么这条日志一定会出现在所有更高term的leader的日志里面。这个跟leader election、log replication都有关。</p>
-<ul>
-<li>一个日志被复制到majority节点才算committed</li>
-<li>一个节点得到majority的投票才能成为leader，而节点A给节点B投票的其中一个前提是，B的日志不能比A的日志旧。下面的引文指处了如何判断日志的新旧</li>
-</ul>
-<p>raft与其他协议（Viewstamped Replication、mongodb）不同，raft始终保证leade包含最新的已提交的日志，因此leader不会从follower catchup日志，这也大大简化了系统的复杂度。</p>
-<h3 id="state-machine-safety">state machine safety</h3>
-<p>如果一个节点已经apply一个给定index的log entry给它的状态机，不能有其他节点在相同的index apply不同的log entry。<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311933175.png" alt=""></p>
-<p>  上图是一个较为复杂的情况。在时刻(a), s1是leader，在term2提交的日志只赋值到了s1 s2两个节点就crash了。在时刻（b), s5成为了term 3的leader，日志只赋值到了s5，然后crash。然后在©时刻，s1又成为了term 4的leader，开始赋值日志，于是把term2的日志复制到了s3，此刻，可以看出term2对应的日志已经被复制到了majority，因此是committed，可以被状态机应用。不幸的是，接下来（d）时刻，s1又crash了，s5重新当选，然后将term3的日志复制到所有节点，这就出现了一种奇怪的现象：被复制到大多数节点（或者说可能已经应用）的日志被回滚。</p>
-<p>  究其根本，是因为term4时的leader s1在（C）时刻提交了之前term2任期的日志。为了杜绝这种情况的发生：</p>
-<blockquote>
-<p>Raft never commits log entries from previous terms by counting replicas.<br>
-Only log entries from the leader’s current term are committed by counting replicas; once an entry from the current term has been committed in this way, then all prior entries are committed indirectly because of the Log Matching Property.</p>
-</blockquote>
-<p>  也就是说，某个leader选举成功之后，不会直接提交前任leader时期的日志，而是通过提交当前任期的日志的时候“顺手”把之前的日志也提交了，具体怎么实现了，在log matching部分有详细介绍。那么问题来了，如果leader被选举后没有收到客户端的请求呢，论文中有提到，在任期开始的时候发立即尝试复制、提交一条空的log。</p>
-<blockquote>
-<p>Raft handles this by having each leader commit a blank no-op entry into the log at the start of its term.</p>
-</blockquote>
-<p>  因此，在上图中，不会出现（C）时刻的情况，即term4任期的leader s1不会复制term2的日志到s3。而是如同(e)描述的情况，通过复制-提交 term4的日志顺便提交term2的日志。如果term4的日志提交成功，那么term2的日志也一定提交成功，此时即使s1crash，s5也不会重新当选。</p>
-<h2 id="corner-case">corner case</h2>
-<p>Section 5.4 discusses somesubtleties when applying this rule after leader changes,and it also shows that this definition of commitment is safe.</p>
-<h3 id="stale-leader">stale leader</h3>
-<p>  raft保证Election safety，即一个任期内最多只有一个leader，但在网络分割（network partition）的情况下，可能会出现两个leader，但两个leader所处的任期是不同的。如下图所示</p>
-<h3 id="leader-crash">leader crash</h3>
-<p>  follower的crash处理方式相对简单，leader只要不停的给follower发消息即可。当leader crash的时候，事情就会变得复杂。在<a href="https://www.cnblogs.com/mindwind/p/5231986.html">这篇文章</a>中，作者就给出了一个更新请求的流程图。</p>
-<h1>总结</h1>
-<p>对raft协议有个简单的了解<a href="http://thesecretlivesofdata.com/raft/">动画</a></p>
-<h1>References</h1>
-<p><a href="https://www.cnblogs.com/xybaby/p/10124083.html#_labelTop">https://www.cnblogs.com/xybaby/p/10124083.html#_labelTop</a><br>
-<a href="https://www.cnblogs.com/mindwind/p/5231986.html">https://www.cnblogs.com/mindwind/p/5231986.html</a><br>
-<a href="http://thesecretlivesofdata.com/raft/">http://thesecretlivesofdata.com/raft/</a><br>
-<a href="https://raft.github.io/">https://raft.github.io/</a><br>
-<a href="https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14">https://web.stanford.edu/~ouster/cgi-bin/papers/raft-atc14</a></p>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204252141295.png" alt=""></p>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> 共识算法 </tag>
+            
+            <tag> raft </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Python语法学习</title>
+      <link href="/2022/03/python/"/>
+      <url>/2022/03/python/</url>
+      
+        <content type="html"><![CDATA[<h1>Python</h1><span id="more"></span><h2 id="语法">语法</h2><h3 id="turle-海龟画图">turle 海龟画图</h3><ul><li>坐标原点在中心，跟坐标系一样 默认向x轴正方向</li></ul><h3 id="可以使用Python中内置的函数对变量类型进行转换。">可以使用Python中内置的函数对变量类型进行转换。</h3><ul><li><code>int()</code>：将一个数值或字符串转换成整数，可以指定进制。</li><li><code>float()</code>：将一个字符串转换成浮点数。</li><li><code>str()</code>：将指定的对象转换成字符串形式，可以指定编码。</li><li><code>chr()</code>：将整数转换成该编码对应的字符串（一个字符）。</li><li><code>ord()</code>：将字符串（一个字符）转换成对应的编码（整数）。</li></ul><h3 id="占位符">占位符</h3><ul><li><code>%d</code>是整数的占位符</li><li><code>%f</code>是小数的占位符</li><li><code>%%</code>表示百分号<br><code>print('%.1f华氏度 = %.1f摄氏度' % (f, c))</code><br>说明：在使用print函数输出时，也可以对字符串内容进行格式化处理，上面print函数中的字符串%.1f是一个占位符，稍后会由一个float类型的变量值替换掉它。同理，如果字符串中有%d，后面可以用一个int类型的变量值替换掉它，而%s会被字符串的值替换掉。除了这种格式化字符串的方式外，还可以用下面的方式来格式化字符串，其中{f:.1f}和{c:.1f}可以先看成是{f}和{c}，表示输出时会用变量f和变量c的值替换掉这两个占位符，后面的:.1f表示这是一个浮点数，小数点后保留1位有效数字。</li></ul><p><code>print(f'&#123;f:.1f&#125;华氏度 = &#123;c:.1f&#125;摄氏度')</code></p><h3 id="运算符">运算符</h3><table><thead><tr><th>运算符</th><th>描述</th></tr></thead><tbody><tr><td><code>[]</code> <code>[:]</code></td><td>下标，切片</td></tr><tr><td><code>**</code></td><td>指数</td></tr><tr><td><code>~</code> <code>+</code> <code>-</code></td><td>按位取反, 正负号</td></tr><tr><td><code>*</code> <code>/</code> <code>%</code> <code>//</code></td><td>乘，除，模，整除</td></tr><tr><td><code>+</code> <code>-</code></td><td>加，减</td></tr><tr><td><code>&gt;&gt;</code> <code>&lt;&lt;</code></td><td>右移，左移</td></tr><tr><td><code>&amp;</code></td><td>按位与</td></tr><tr><td><code>^</code> <code>|</code></td><td>按位异或，按位或</td></tr><tr><td><code>&lt;=</code> <code>&lt;</code> <code>&gt;</code> <code>&gt;=</code></td><td>小于等于，小于，大于，大于等于</td></tr><tr><td><code>==</code> <code>!=</code></td><td>等于，不等于</td></tr><tr><td><code>is</code>  <code>is not</code></td><td>身份运算符</td></tr><tr><td><code>in</code> <code>not in</code></td><td>成员运算符</td></tr><tr><td><code>not</code> <code>or</code> <code>and</code></td><td>逻辑运算符</td></tr><tr><td><code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>//=</code> <code>**=</code> <code>&amp;=</code> `</td><td>=<code> </code>^=<code> </code>&gt;&gt;=<code> </code>&lt;&lt;=`</td></tr></tbody></table><h3 id="if语句">if语句</h3><p><code>if...elif...else</code><br><code>if...else</code></p><h3 id="循环结构">循环结构</h3><p><em>for-in循环</em></p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sum</span> = <span class="number">0</span></span><br><span class="line"><span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">101</span>):</span><br><span class="line">    <span class="built_in">sum</span> += x</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">sum</span>)</span><br></pre></td></tr></table></figure><ul><li><code>range(101)</code>：可以用来产生0到100范围的整数，需要注意的是取不到101。</li><li><code>range(1, 101)</code>：可以用来产生1到100范围的整数，相当于前面是闭区间后面是开区间。</li><li><code>range(1, 101, 2)</code>：可以用来产生1到100的奇数，其中2是步长，即每次数值递增的值。</li><li><code>range(100, 0, -2)</code>：可以用来产生100到1的偶数，其中-2是步长，即每次数字递减的值。</li></ul><p><em>while循环</em></p><h3 id="使用字符串">使用字符串</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;hello, world!&#x27;</span></span><br><span class="line">s2 = <span class="string">&quot;hello, world!&quot;</span></span><br><span class="line"><span class="comment"># 以三个双引号或单引号开头的字符串可以折行</span></span><br><span class="line">s3 = <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">hello, </span></span><br><span class="line"><span class="string">world!</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="built_in">print</span>(s1, s2, s3, end=<span class="string">&#x27;&#x27;</span>)</span><br></pre></td></tr></table></figure><p>可以在字符串中使用<code>\</code>（反斜杠）来表示转义，也就是说<code>\</code>后面的字符不再是它原来的意义，例如：<code>\n</code>不是代表反斜杠和字符n，而是表示换行；而<code>\t</code>也不是代表反斜杠和字符t，而是表示制表符。所以如果想在字符串中表示<code>'</code>要写成<code>\'</code>，同理想表示<code>\</code>要写成<code>\\</code>。可以运行下面的代码看看会输出什么。</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;\&#x27;hello, world!\&#x27;&#x27;</span></span><br><span class="line">s2 = <span class="string">&#x27;\n\\hello, world!\\\n&#x27;</span></span><br><span class="line"><span class="built_in">print</span>(s1, s2, end=<span class="string">&#x27;&#x27;</span>)</span><br></pre></td></tr></table></figure><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">s1 = <span class="string">&#x27;hello &#x27;</span> * <span class="number">3</span></span><br><span class="line"><span class="built_in">print</span>(s1) <span class="comment"># hello hello hello </span></span><br><span class="line">s2 = <span class="string">&#x27;world&#x27;</span></span><br><span class="line">s1 += s2</span><br><span class="line"><span class="built_in">print</span>(s1) <span class="comment"># hello hello hello world</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;ll&#x27;</span> <span class="keyword">in</span> s1) <span class="comment"># True</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;good&#x27;</span> <span class="keyword">in</span> s1) <span class="comment"># False</span></span><br><span class="line">str2 = <span class="string">&#x27;abc123456&#x27;</span></span><br><span class="line"><span class="comment"># 从字符串中取出指定位置的字符(下标运算)</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>]) <span class="comment"># c</span></span><br><span class="line"><span class="comment"># 字符串切片(从指定的开始索引到指定的结束索引)</span></span><br><span class="line"><span class="comment"># 切片[]取左不取右</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>:<span class="number">5</span>]) <span class="comment"># c12</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>:]) <span class="comment"># c123456</span></span><br><span class="line"><span class="built_in">print</span>(str2[<span class="number">2</span>::<span class="number">2</span>]) <span class="comment"># c246</span></span><br><span class="line"><span class="built_in">print</span>(str2[::<span class="number">2</span>]) <span class="comment"># ac246</span></span><br><span class="line"><span class="built_in">print</span>(str2[::-<span class="number">1</span>]) <span class="comment"># 654321cba</span></span><br><span class="line"><span class="built_in">print</span>(str2[-<span class="number">3</span>:-<span class="number">1</span>]) <span class="comment"># 45</span></span><br></pre></td></tr></table></figure><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">str1 = <span class="string">&#x27;hello, world!&#x27;</span></span><br><span class="line"><span class="comment"># 通过内置函数len计算字符串的长度</span></span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">len</span>(str1)) <span class="comment"># 13</span></span><br><span class="line"><span class="comment"># 获得字符串首字母大写的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.capitalize()) <span class="comment"># Hello, world!</span></span><br><span class="line"><span class="comment"># 获得字符串每个单词首字母大写的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.title()) <span class="comment"># Hello, World!</span></span><br><span class="line"><span class="comment"># 获得字符串变大写后的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str1.upper()) <span class="comment"># HELLO, WORLD!</span></span><br><span class="line"><span class="comment"># 从字符串中查找子串所在位置</span></span><br><span class="line"><span class="built_in">print</span>(str1.find(<span class="string">&#x27;or&#x27;</span>)) <span class="comment"># 8</span></span><br><span class="line"><span class="built_in">print</span>(str1.find(<span class="string">&#x27;shit&#x27;</span>)) <span class="comment"># -1</span></span><br><span class="line"><span class="comment"># 与find类似但找不到子串时会引发异常</span></span><br><span class="line"><span class="comment"># print(str1.index(&#x27;or&#x27;))</span></span><br><span class="line"><span class="comment"># print(str1.index(&#x27;shit&#x27;))</span></span><br><span class="line"><span class="comment"># 检查字符串是否以指定的字符串开头</span></span><br><span class="line"><span class="built_in">print</span>(str1.startswith(<span class="string">&#x27;He&#x27;</span>)) <span class="comment"># False</span></span><br><span class="line"><span class="built_in">print</span>(str1.startswith(<span class="string">&#x27;hel&#x27;</span>)) <span class="comment"># True</span></span><br><span class="line"><span class="comment"># 检查字符串是否以指定的字符串结尾</span></span><br><span class="line"><span class="built_in">print</span>(str1.endswith(<span class="string">&#x27;!&#x27;</span>)) <span class="comment"># True</span></span><br><span class="line"><span class="comment"># 将字符串以指定的宽度居中并在两侧填充指定的字符</span></span><br><span class="line"><span class="built_in">print</span>(str1.center(<span class="number">50</span>, <span class="string">&#x27;*&#x27;</span>))</span><br><span class="line"><span class="comment"># 将字符串以指定的宽度靠右放置左侧填充指定的字符</span></span><br><span class="line"><span class="built_in">print</span>(str1.rjust(<span class="number">50</span>, <span class="string">&#x27; &#x27;</span>))</span><br><span class="line">str2 = <span class="string">&#x27;abc123456&#x27;</span></span><br><span class="line"><span class="comment"># 检查字符串是否由数字构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isdigit())  <span class="comment"># False</span></span><br><span class="line"><span class="comment"># 检查字符串是否以字母构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isalpha())  <span class="comment"># False</span></span><br><span class="line"><span class="comment"># 检查字符串是否以数字和字母构成</span></span><br><span class="line"><span class="built_in">print</span>(str2.isalnum())  <span class="comment"># True</span></span><br><span class="line">str3 = <span class="string">&#x27;  jackfrued@126.com &#x27;</span></span><br><span class="line"><span class="built_in">print</span>(str3)</span><br><span class="line"><span class="comment"># 获得字符串修剪左右两侧空格之后的拷贝</span></span><br><span class="line"><span class="built_in">print</span>(str3.strip())</span><br></pre></td></tr></table></figure><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;%d * %d = %d&#x27;</span> % (a, b, a * b))</span><br></pre></td></tr></table></figure><p>当然，我们也可以用字符串提供的方法来完成字符串的格式，代码如下所示。</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;&#123;0&#125; * &#123;1&#125; = &#123;2&#125;&#x27;</span>.<span class="built_in">format</span>(a, b, a * b))</span><br></pre></td></tr></table></figure><p>Python 3.6以后，格式化字符串还有更为简洁的书写方式，就是在字符串前加上字母<code>f</code>，我们可以使用下面的语法糖来简化上面的代码。</p><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">a, b = <span class="number">5</span>, <span class="number">10</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&#x27;<span class="subst">&#123;a&#125;</span> * <span class="subst">&#123;b&#125;</span> = <span class="subst">&#123;a * b&#125;</span>&#x27;</span>)</span><br></pre></td></tr></table></figure><h3 id="生成式和生成器">生成式和生成器</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">f = [x <span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">10</span>)]</span><br><span class="line"><span class="built_in">print</span>(f)</span><br><span class="line">f = [x + y <span class="keyword">for</span> x <span class="keyword">in</span> <span class="string">&#x27;ABCDE&#x27;</span> <span class="keyword">for</span> y <span class="keyword">in</span> <span class="string">&#x27;1234567&#x27;</span>]</span><br><span class="line"><span class="built_in">print</span>(f)</span><br><span class="line"><span class="comment"># 用列表的生成表达式语法创建列表容器</span></span><br><span class="line"><span class="comment"># 用这种语法创建列表之后元素已经准备就绪所以需要耗费较多的内存空间</span></span><br><span class="line">f = [x ** <span class="number">2</span> <span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">1000</span>)]</span><br><span class="line"><span class="built_in">print</span>(sys.getsizeof(f))  <span class="comment"># 查看对象占用内存的字节数</span></span><br><span class="line"><span class="built_in">print</span>(f)</span><br><span class="line"><span class="comment"># 请注意下面的代码创建的不是一个列表而是一个生成器对象</span></span><br><span class="line"><span class="comment"># 通过生成器可以获取到数据但它不占用额外的空间存储数据</span></span><br><span class="line"><span class="comment"># 每次需要数据的时候就通过内部的运算得到数据(需要花费额外的时间)</span></span><br><span class="line">f = (x ** <span class="number">2</span> <span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">1000</span>))</span><br><span class="line"><span class="built_in">print</span>(sys.getsizeof(f))  <span class="comment"># 相比生成式生成器不占用存储数据的空间</span></span><br><span class="line"><span class="built_in">print</span>(f)</span><br><span class="line"><span class="keyword">for</span> val <span class="keyword">in</span> f:</span><br><span class="line">    <span class="built_in">print</span>(val)</span><br></pre></td></tr></table></figure><h3 id="元组">元组</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 定义元组</span></span><br><span class="line">t = (<span class="string">&#x27;骆昊&#x27;</span>, <span class="number">38</span>, <span class="literal">True</span>, <span class="string">&#x27;四川成都&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span>(t)</span><br><span class="line"><span class="comment"># 获取元组中的元素</span></span><br><span class="line"><span class="built_in">print</span>(t[<span class="number">0</span>])</span><br><span class="line"><span class="built_in">print</span>(t[<span class="number">3</span>])</span><br><span class="line"><span class="comment"># 遍历元组中的值</span></span><br><span class="line"><span class="keyword">for</span> member <span class="keyword">in</span> t:</span><br><span class="line">    <span class="built_in">print</span>(member)</span><br><span class="line"><span class="comment"># 重新给元组赋值</span></span><br><span class="line"><span class="comment"># t[0] = &#x27;王大锤&#x27;  # TypeError</span></span><br><span class="line"><span class="comment"># 变量t重新引用了新的元组原来的元组将被垃圾回收</span></span><br><span class="line">t = (<span class="string">&#x27;王大锤&#x27;</span>, <span class="number">20</span>, <span class="literal">True</span>, <span class="string">&#x27;云南昆明&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span>(t)</span><br><span class="line"><span class="comment"># 将元组转换成列表</span></span><br><span class="line">person = <span class="built_in">list</span>(t)</span><br><span class="line"><span class="built_in">print</span>(person)</span><br><span class="line"><span class="comment"># 列表是可以修改它的元素的</span></span><br><span class="line">person[<span class="number">0</span>] = <span class="string">&#x27;李小龙&#x27;</span></span><br><span class="line">person[<span class="number">1</span>] = <span class="number">25</span></span><br><span class="line"><span class="built_in">print</span>(person)</span><br><span class="line"><span class="comment"># 将列表转换成元组</span></span><br><span class="line">fruits_list = [<span class="string">&#x27;apple&#x27;</span>, <span class="string">&#x27;banana&#x27;</span>, <span class="string">&#x27;orange&#x27;</span>]</span><br><span class="line">fruits_tuple = <span class="built_in">tuple</span>(fruits_list)</span><br><span class="line"><span class="built_in">print</span>(fruits_tuple)</span><br></pre></td></tr></table></figure><p>有了列表为什么需要元组？<br>1、元组中的元素是无法修改的<br>2、元组在创建时间和占用空间上面都优于列表</p><h3 id="集合">集合</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建集合的字面量语法</span></span><br><span class="line">set1 = &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">2</span>&#125;</span><br><span class="line"><span class="built_in">print</span>(set1)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;Length =&#x27;</span>, <span class="built_in">len</span>(set1))</span><br><span class="line"><span class="comment"># 创建集合的构造器语法(面向对象部分会进行详细讲解)</span></span><br><span class="line">set2 = <span class="built_in">set</span>(<span class="built_in">range</span>(<span class="number">1</span>, <span class="number">10</span>))</span><br><span class="line">set3 = <span class="built_in">set</span>((<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">3</span>, <span class="number">2</span>, <span class="number">1</span>))</span><br><span class="line"><span class="built_in">print</span>(set2, set3)</span><br><span class="line"><span class="comment"># 创建集合的推导式语法(推导式也可以用于推导集合)</span></span><br><span class="line">set4 = &#123;num <span class="keyword">for</span> num <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">100</span>) <span class="keyword">if</span> num % <span class="number">3</span> == <span class="number">0</span> <span class="keyword">or</span> num % <span class="number">5</span> == <span class="number">0</span>&#125;</span><br><span class="line"><span class="built_in">print</span>(set4)</span><br></pre></td></tr></table></figure><h3 id="字典">字典</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建字典的字面量语法</span></span><br><span class="line">scores = &#123;<span class="string">&#x27;骆昊&#x27;</span>: <span class="number">95</span>, <span class="string">&#x27;白元芳&#x27;</span>: <span class="number">78</span>, <span class="string">&#x27;狄仁杰&#x27;</span>: <span class="number">82</span>&#125;</span><br><span class="line"><span class="built_in">print</span>(scores)</span><br><span class="line"><span class="comment"># 创建字典的构造器语法</span></span><br><span class="line">items1 = <span class="built_in">dict</span>(one=<span class="number">1</span>, two=<span class="number">2</span>, three=<span class="number">3</span>, four=<span class="number">4</span>)</span><br><span class="line"><span class="comment"># 通过zip函数将两个序列压成字典</span></span><br><span class="line">items2 = <span class="built_in">dict</span>(<span class="built_in">zip</span>([<span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;b&#x27;</span>, <span class="string">&#x27;c&#x27;</span>], <span class="string">&#x27;123&#x27;</span>))</span><br><span class="line"><span class="comment"># 创建字典的推导式语法</span></span><br><span class="line">items3 = &#123;num: num ** <span class="number">2</span> <span class="keyword">for</span> num <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>, <span class="number">10</span>)&#125;</span><br><span class="line"><span class="built_in">print</span>(items1, items2, items3)</span><br><span class="line"><span class="comment"># 通过键可以获取字典中对应的值</span></span><br><span class="line"><span class="built_in">print</span>(scores[<span class="string">&#x27;骆昊&#x27;</span>])</span><br><span class="line"><span class="built_in">print</span>(scores[<span class="string">&#x27;狄仁杰&#x27;</span>])</span><br><span class="line"><span class="comment"># 对字典中所有键值对进行遍历</span></span><br><span class="line"><span class="keyword">for</span> key <span class="keyword">in</span> scores:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&#x27;<span class="subst">&#123;key&#125;</span>: <span class="subst">&#123;scores[key]&#125;</span>&#x27;</span>)</span><br><span class="line"><span class="comment"># 更新字典中的元素</span></span><br><span class="line">scores[<span class="string">&#x27;白元芳&#x27;</span>] = <span class="number">65</span></span><br><span class="line">scores[<span class="string">&#x27;诸葛王朗&#x27;</span>] = <span class="number">71</span></span><br><span class="line">scores.update(冷面=<span class="number">67</span>, 方启鹤=<span class="number">85</span>)</span><br><span class="line"><span class="built_in">print</span>(scores)</span><br><span class="line"><span class="keyword">if</span> <span class="string">&#x27;武则天&#x27;</span> <span class="keyword">in</span> scores:</span><br><span class="line">    <span class="built_in">print</span>(scores[<span class="string">&#x27;武则天&#x27;</span>])</span><br><span class="line"><span class="built_in">print</span>(scores.get(<span class="string">&#x27;武则天&#x27;</span>))</span><br><span class="line"><span class="comment"># get方法也是通过键获取对应的值但是可以设置默认值</span></span><br><span class="line"><span class="built_in">print</span>(scores.get(<span class="string">&#x27;武则天&#x27;</span>, <span class="number">60</span>))</span><br><span class="line"><span class="comment"># 删除字典中的元素</span></span><br><span class="line"><span class="built_in">print</span>(scores.popitem())</span><br><span class="line"><span class="built_in">print</span>(scores.popitem())</span><br><span class="line"><span class="built_in">print</span>(scores.pop(<span class="string">&#x27;骆昊&#x27;</span>, <span class="number">100</span>))</span><br><span class="line"><span class="comment"># 清空字典</span></span><br><span class="line">scores.clear()</span><br><span class="line"><span class="built_in">print</span>(scores)</span><br></pre></td></tr></table></figure>]]></content>
+      
+      
       <categories>
-        <category>分布式</category>
-        <category>raft</category>
+          
+          <category> python </category>
+          
       </categories>
-      <tags>
-        <tag>共识算法</tag>
-        <tag>raft</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>KubeEdge学习</title>
-    <url>/2022/04/KubeEdge%E5%AD%A6%E4%B9%A0/</url>
-    <content><![CDATA[<p>Kube+Edge:依托 Kubernetes 的容器编排和调度能力，实现云边协同、计算下沉、海量设备接入等。</p>
-<span id="more"></span> 
-<h1>KubeEdge架构分析</h1>
-<p>KubeEdge是首个基于Kubernetes扩展的，提供云边协同能力的开放式智能边缘平台，也是CNCF在智能边缘领域的首个正式项目。KubeEdge重点解决的问题是：</p>
-<ul>
-<li>云边协同</li>
-<li>资源异构</li>
-<li>大规模</li>
-<li>轻量化</li>
-<li>一致的设备管理和接入体验</li>
-</ul>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> python </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>test_my_site</title>
+      <link href="/2022/03/test-my-site/"/>
+      <url>/2022/03/test-my-site/</url>
+      
+        <content type="html"><![CDATA[]]></content>
+      
+      
       <categories>
-        <category>KubeEdge</category>
+          
+          <category> new </category>
+          
       </categories>
-      <tags>
-        <tag>go</tag>
-        <tag>边缘计算</tag>
-        <tag>KubeEdge</tag>
-        <tag>Kubernetes</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>k8s安装</title>
-    <url>/2022/04/k8s%E5%AE%89%E8%A3%85/</url>
-    <content><![CDATA[<style>
-h1{
-    background:  linear-gradient(to right, #a8edea 0%, #fed6e3 100%);
-    color: #000;
-}
-h2{
-    background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
-}
-</style>
-<blockquote>
-<p>本文介绍了如何ubuntu使用kubectl、kubelet、kubeadm、docker搭建k8s集群</p>
-</blockquote>
-<span id="more"></span> 
-<h1>安装环境及配置</h1>
-<h2 id="实验环境">实验环境</h2>
-<ul>
-<li>ubuntu-18.04.6-live-server-amd64</li>
-<li>VMware® Workstation 16 Pro</li>
-</ul>
-<h2 id="虚拟机设置">虚拟机设置</h2>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204270944640.png" alt=""></p>
-<ul>
-<li>各节点的ip地址<br>
-<code>k8s-server1:192.168.220.131</code>//master节点<br>
-<code>k8s-server2:192.168.220.132</code><br>
-<code>k8s-server3:192.168.220.133</code></li>
-</ul>
-<h2 id="tips"><em>tips</em></h2>
-<p>本实验中主机名应设置应遵从DNS的解析规则的，要不然后续安装会报以下错误。</p>
-<blockquote>
-<p><a href="http://nodeRegistration.name">nodeRegistration.name</a>: Invalid value: “k8s_server1”: a DNS-1123 subdomain must consist of lower case alphanumeric characters, ‘-’ or ‘.’, and must start and end with an alphanumeric character (e.g. ‘<a href="http://example.com">example.com</a>’, regex used for validation is ‘<a href="%5B-a-z0-9%5D*%5Ba-z0-9%5D">a-z0-9</a>?(.<a href="%5B-a-z0-9%5D*%5Ba-z0-9%5D">a-z0-9</a>?)*’)</p>
-</blockquote>
-<p><em><strong>reason：</strong></em><br>
-hostname 和 DNS 的解析规则不匹配导致报错,原因是 hostname 和 DNS 的解析规则不匹配， 不能有除<code>-</code>和<code>.</code>之外的特殊字符存在。注意是主机名hostname，不可有<code>-</code>或者<code>.</code>。</p>
-<p><em><strong>solution：</strong></em><br>
-执行<code>hostname</code>命令查看hostname</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hostname</span><br><span class="line">k8s_server1</span><br></pre></td></tr></table></figure>
-<p>执行<code>hostnamectl set-hostname &lt;主机名&gt;</code>命令更改主机名，&lt;主机名&gt;可自定义,例如:</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">hostnamectl set-hostname k8s-server1</span><br></pre></td></tr></table></figure>
-<h1>k8s部署环境准备</h1>
-<h2 id="关闭防火墙">关闭防火墙</h2>
-<pre><code><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">systemctl  stop  firewalld</span><br><span class="line">systemctl  disable  firewalld</span><br></pre></td></tr></table></figure>
-</code></pre>
-<h2 id="关闭虚拟内存swap">关闭虚拟内存swap</h2>
-  <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">暂时关闭</span></span><br><span class="line">sudo swapoff -a</span><br></pre></td></tr></table></figure>
-  <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">永久关闭(注释掉/etc/fstab文件中的swap行)</span></span><br><span class="line">sed  -ri  &#x27;s/.*swap.*/#&amp;/&#x27;  /etc/fstab</span><br></pre></td></tr></table></figure>
-<h2 id="在master节点添加hosts">在master节点添加hosts</h2>
-  <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">编辑hosts文件，将所有节点的ip和主机名一一对应</span></span><br><span class="line">cat &gt;&gt; /etc/hosts &lt;&lt; EOF</span><br><span class="line">192.168.220.131   k8s-server1</span><br><span class="line">192.168.220.132   k8s-server2</span><br><span class="line">192.168.220.133   k8s-server3</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
-<p>==注：== 此处<code>cat &gt;&gt; xxx &lt;&lt; EOF</code>与后面的<code>cat &gt; xxx &lt;&lt; EOF</code>的区别在于，前者是在原文件末尾加上新内容，后者则是新建一个xxx文件。</p>
-<h2 id="设置网桥参数">设置网桥参数</h2>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">将桥接的IPv4流量传递到iptables的链</span></span><br><span class="line">cat &gt; /etc/sysctl.d/k8s.conf &lt;&lt; EOF</span><br><span class="line">net.bridge.bridge-nf-call-ip6tables = 1</span><br><span class="line">net.bridge.bridge-nf-call-iptables = 1</span><br><span class="line">EOF</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">生效</span></span><br><span class="line">sysctl  --system  </span><br></pre></td></tr></table></figure>
-<h2 id="时间同步">时间同步</h2>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">apt install ntpdate  -y</span><br><span class="line">ntpdate time.windows.com</span><br></pre></td></tr></table></figure>
-<h1>k8s安装过程</h1>
-<p><strong>所有服务器节点安装 docker、kubeadm、kubelet、dubectl</strong><br>
-==//todo:后续要学习这几个软件各自的作用==</p>
-<h2 id="安装docker">安装docker</h2>
-<p>安装docker</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo apt-get update</span><br><span class="line"></span><br><span class="line">sudo apt-get install \</span><br><span class="line">    apt-transport-https \</span><br><span class="line">    ca-certificates \</span><br><span class="line">    curl \</span><br><span class="line">    gnupg-agent \</span><br><span class="line">    software-properties-common  -y</span><br><span class="line"></span><br><span class="line">curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -</span><br><span class="line"></span><br><span class="line">sudo add-apt-repository \</span><br><span class="line">   &quot;deb [arch=amd64] https://download.docker.com/linux/ubuntu \</span><br><span class="line"><span class="meta prompt_">   $</span><span class="language-bash">(lsb_release -cs) \</span></span><br><span class="line"><span class="language-bash">   stable<span class="string">&quot;</span></span></span><br></pre></td></tr></table></figure>
-<p>再更新一下，添加docker镜像源，阿里的没配置账户用不了，这里用的网易镜像源</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">apt-get update</span><br><span class="line"></span><br><span class="line">mkdir /etc/docker</span><br><span class="line">cat &gt; /etc/docker/daemon.json &lt;&lt; EOF</span><br><span class="line">&#123;</span><br><span class="line"> &quot;registry-mirrors&quot;: [</span><br><span class="line">     &quot;http://hub-mirror.c.163.com&quot;,</span><br><span class="line">     &quot;https://docker.mirrors.ustc.edu.cn&quot;</span><br><span class="line"> ],</span><br><span class="line"> &quot;exec-opts&quot;: [&quot;native.cgroupdriver=systemd&quot;]</span><br><span class="line">&#125;</span><br><span class="line">EOF</span><br><span class="line"></span><br><span class="line">sudo apt-get install docker-ce docker-ce-cli containerd.io  -y</span><br></pre></td></tr></table></figure>
-<p>重启docker</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl restart docker</span><br></pre></td></tr></table></figure>
-<h2 id="安装kubeadm、kubelet、kubectl">安装kubeadm、kubelet、kubectl</h2>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">使得 apt 支持 ssl 传输</span></span><br><span class="line">apt-get update &amp;&amp; apt-get install -y apt-transport-https</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">下载 gpg 密钥</span></span><br><span class="line">curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add - </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">添加 k8s 镜像源</span></span><br><span class="line">cat &gt; /etc/apt/sources.list.d/kubernetes.list &lt;&lt; EOF </span><br><span class="line">deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main</span><br><span class="line">EOF</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">更新源列表</span></span><br><span class="line">apt-get update</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">下载 kubectl，kubeadm以及 kubelet</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">（由于后续需要安装KubeEdge，KubeEdge支持的最新版本的k8s是1.22.0）</span></span><br><span class="line">apt-get install -y kubelet=1.22.0-00 kubeadm=1.22.0-00 kubectl=1.22.0-00</span><br></pre></td></tr></table></figure>
-<h2 id="启动各个节点">启动各个节点</h2>
-<ol>
-<li>
-<p>通过kubeadm init启动master节点</p>
- <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">kubeadm init \</span><br><span class="line">--apiserver-advertise-address=192.168.220.131 \</span><br><span class="line">--image-repository registry.aliyuncs.com/google_containers \</span><br><span class="line">--kubernetes-version v1.22.0 \</span><br><span class="line">--service-cidr=10.96.0.0/12 \</span><br><span class="line">--pod-network-cidr=10.244.0.0/16</span><br></pre></td></tr></table></figure>
-<p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271445417.png" alt=""></p>
-<blockquote>
-<p><em>note:</em> service-cidr的选取和PodCIDR及本机网络不能有重叠或者冲突，一般可以选择一个本机网络和PodCIDR都没有用到的私网地址段，比如PodCIDR使用10.244.0.0/16，那么service-cidr可以选择10.96.0.0/12，网络无重叠冲突即可。</p>
-</blockquote>
-</li>
-<li>
-<p>接下来在master节点上执行</p>
- <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">run the following as a regular user</span></span><br><span class="line">mkdir -p $HOME/.kube</span><br><span class="line">cp -i /etc/kubernetes/admin.conf $HOME/.kube/config</span><br><span class="line">chown $(id -u):$(id -g) $HOME/.kube/config</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="keyword">if</span> you are the root user, you can run:</span></span><br><span class="line">export KUBECONFIG=/etc/kubernetes/admin.conf</span><br></pre></td></tr></table></figure>
-<p><code>kubectl get nodes</code>：查看节点状态<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271452387.png" alt=""></p>
-</li>
-<li>
-<p>node加入集群<br>
-向集群添加新节点，执行的命令就是第一步<code>kubeadm init</code>最后输出的<code>kubeadm join</code>命令<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271454061.png" alt=""></p>
- <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">eg.k8s-server2作为一个node节点运行kubeadm <span class="built_in">join</span>命令</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">（要保证node节点的前置环境也装好了）</span></span><br><span class="line">kubeadm join 192.168.220.131:6443 --token lmnc8j.i5vke858hfo9pgka \</span><br><span class="line">    --discovery-token-ca-cert-hash sha256:70a2c8f5fbb50ce24caad2c04dfcf971e1ca5aa437765fd6b1b15bfc8d9cd563</span><br></pre></td></tr></table></figure>
-<p>加入集群成功：<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271529921.png" alt=""></p>
-<p>回到master节点，运行<code>kubectl get nodes</code>查看节点状态<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271524353.png" alt=""></p>
-</li>
-<li>
-<p>同理将k8s-server3加入集群<br>
-回到master节点运行<code>kubectl get nodes</code>查看节点状态，等一会儿，直到Status变为Ready，则server3成功加入集群<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271618605.png" alt=""></p>
-</li>
-</ol>
-<h2 id="master部署网络插件">master部署网络插件</h2>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">下载kube-flannel.yml文件（可能要多试几次）</span></span><br><span class="line">wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">应用kube-flannel.yml文件得到运行时容器</span></span><br><span class="line">kubectl apply -f kube-flannel.yml</span><br></pre></td></tr></table></figure>
-<p>运行结果：<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271527114.png" alt=""></p>
-<p><code>kubectl get pods -n kube-system</code>：查看运行时容器pod<br>
-<code>kubectl get nodes</code>：查看节点状态<br>
-当STATUS显示为Ready时，则k8s环境就搭建好了：<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271556072.png" alt=""></p>
-<h2 id="tips-2"><em>tips</em></h2>
-<p>如果版本安装的有问题，可能会有以下报错：</p>
-<blockquote>
-<p>[ERROR KubeletVersion]: the kubelet version is higher than the control plane version. This is not a supported version skew and may lead to a malfunctional cluster</p>
-</blockquote>
-<p><em><strong>reason：</strong></em><br>
-  如果直接使用命令apt-get install kubeadm（kubelet、kubectl）下载kubeadm(或者kubelet、kubectl)，那么下载的会是最新版本的kubeadm。<br>
-  此时，如果想要部署一个1.22.0版本的k8s，那么，使用初始化集群命令时就会报错，提示此kubeadm版本只能部署高版本的k8s，而不能部署低版本的k8s.</p>
-<p><em><strong>solution：</strong></em><br>
-  如果知道的比较晚，已经下载安装了kubeadm，该如何挽救呢？（这里一kubeadm为例,kubelet和kubectl同理）</p>
-<ol>
-<li>首先查看kubeadm版本： <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">apt-cache madison kubelet</span><br></pre></td></tr></table></figure>
-笔者查看的时候最新版本是1.23.6-00，不写版本直接下载的应该就是这个版本。</li>
-<li>卸载kubelet <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">删除软件及其配置文件</span></span><br><span class="line">apt-get --purge remove kubelet</span><br></pre></td></tr></table></figure>
-</li>
-<li>重新安装制定版本的kubelet <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">apt-get install kubelet=1.22.0-00</span><br></pre></td></tr></table></figure></li>
-</ol>
-]]></content>
+      
+      
+        <tags>
+            
+            <tag> new </tag>
+            
+            <tag> hello </tag>
+            
+            <tag> world </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Hello World</title>
+      <link href="/2022/03/hello-world/"/>
+      <url>/2022/03/hello-world/</url>
+      
+        <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p><h2 id="Quick-Start">Quick Start</h2><h3 id="Create-a-new-post">Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p><h3 id="Run-server">Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p><h3 id="Generate-static-files">Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p><h3 id="Deploy-to-remote-sites">Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>]]></content>
+      
+      
       <categories>
-        <category>k8s</category>
+          
+          <category> new </category>
+          
       </categories>
-      <tags>
-        <tag>go</tag>
-        <tag>Kubernetes</tag>
-      </tags>
-  </entry>
+      
+      
+        <tags>
+            
+            <tag> hello </tag>
+            
+            <tag> world </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+  
+  
 </search>
