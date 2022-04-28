@@ -247,19 +247,25 @@ h2{
 <span id="more"></span> 
 <h1>安装环境及配置</h1>
 <h2 id="实验环境">实验环境</h2>
-<ul>
-<li>ubuntu-18.04.6-live-server-amd64</li>
-<li>VMware® Workstation 16 Pro</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>ubuntu-18.04.6-live-server-amd64</p>
+</li>
+<li class="lvl-2">
+<p>VMware® Workstation 16 Pro</p>
+</li>
 </ul>
 <h2 id="虚拟机设置">虚拟机设置</h2>
 <p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204270944640.png" alt=""></p>
-<ul>
-<li>各节点的ip地址<br>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>各节点的ip地址<br>
 <code>k8s-server1:192.168.220.131</code>//master节点<br>
 <code>k8s-server2:192.168.220.132</code><br>
-<code>k8s-server3:192.168.220.133</code></li>
+<code>k8s-server3:192.168.220.133</code></p>
+</li>
 </ul>
-<p>==注：== 这里节点的命名不能有除<code>-</code>、<code>.</code>之外的符号，否则后续可能会报错，详见<a href="#%E4%B8%BB%E6%9C%BA%E5%90%8D%E8%AE%BE%E7%BD%AE%E9%94%99%E8%AF%AF">主机名设置错误</a></p>
+<p><mark>注：</mark> 这里节点的命名不能有除<code>-</code>、<code>.</code>之外的符号，否则后续可能会报错，详见<a href="#%E4%B8%BB%E6%9C%BA%E5%90%8D%E8%AE%BE%E7%BD%AE%E9%94%99%E8%AF%AF">主机名设置错误</a></p>
 <h1>k8s部署环境准备</h1>
 <h2 id="关闭防火墙">关闭防火墙</h2>
 <pre><code><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systemctl  stop  firewalld</span><br><span class="line">systemctl  disable  firewalld</span><br></pre></td></tr></table></figure>
@@ -269,14 +275,14 @@ h2{
   <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">永久关闭(注释掉/etc/fstab文件中的swap行)</span></span><br><span class="line">sed  -ri  &#x27;s/.*swap.*/#&amp;/&#x27;  /etc/fstab</span><br></pre></td></tr></table></figure>
 <h2 id="在master节点添加hosts">在master节点添加hosts</h2>
   <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">编辑hosts文件，将所有节点的ip和主机名一一对应</span></span><br><span class="line">cat &gt;&gt; /etc/hosts &lt;&lt; EOF</span><br><span class="line">192.168.220.131   k8s-server1</span><br><span class="line">192.168.220.132   k8s-server2</span><br><span class="line">192.168.220.133   k8s-server3</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
-<p>==注：== 此处<code>cat &gt;&gt; xxx &lt;&lt; EOF</code>与后面的<code>cat &gt; xxx &lt;&lt; EOF</code>的区别在于，前者是在原文件末尾加上新内容，后者则是新建一个xxx文件。</p>
+<p><mark>注：</mark> 此处<code>cat &gt;&gt; xxx &lt;&lt; EOF</code>与后面的<code>cat &gt; xxx &lt;&lt; EOF</code>的区别在于，前者是在原文件末尾加上新内容，后者则是新建一个xxx文件。</p>
 <h2 id="设置网桥参数">设置网桥参数</h2>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">将桥接的IPv4流量传递到iptables的链</span></span><br><span class="line">cat &gt; /etc/sysctl.d/k8s.conf &lt;&lt; EOF</span><br><span class="line">net.bridge.bridge-nf-call-ip6tables = 1</span><br><span class="line">net.bridge.bridge-nf-call-iptables = 1</span><br><span class="line">EOF</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">生效</span></span><br><span class="line">sysctl  --system  </span><br></pre></td></tr></table></figure>
 <h2 id="时间同步">时间同步</h2>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">apt install ntpdate  -y</span><br><span class="line">ntpdate time.windows.com</span><br></pre></td></tr></table></figure>
 <h1>k8s安装过程</h1>
 <p><strong>所有服务器节点安装 docker、kubeadm、kubelet、dubectl</strong><br>
-==//todo:后续要学习这几个软件各自的作用==</p>
+<mark>//todo:后续要学习这几个软件各自的作用</mark></p>
 <h2 id="安装docker">安装docker</h2>
 <p>安装docker</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get update</span><br><span class="line"></span><br><span class="line">sudo apt-get install \</span><br><span class="line">    apt-transport-https \</span><br><span class="line">    ca-certificates \</span><br><span class="line">    curl \</span><br><span class="line">    gnupg-agent \</span><br><span class="line">    software-properties-common  -y</span><br><span class="line"></span><br><span class="line">curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -</span><br><span class="line"></span><br><span class="line">sudo add-apt-repository \</span><br><span class="line">   &quot;deb [arch=amd64] https://download.docker.com/linux/ubuntu \</span><br><span class="line"><span class="meta prompt_">   $</span><span class="language-bash">(lsb_release -cs) \</span></span><br><span class="line"><span class="language-bash">   stable<span class="string">&quot;</span></span></span><br></pre></td></tr></table></figure>
@@ -288,7 +294,7 @@ h2{
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">使得 apt 支持 ssl 传输</span></span><br><span class="line">apt-get update &amp;&amp; apt-get install -y apt-transport-https</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">下载 gpg 密钥</span></span><br><span class="line">curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add - </span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">添加 k8s 镜像源</span></span><br><span class="line">cat &gt; /etc/apt/sources.list.d/kubernetes.list &lt;&lt; EOF </span><br><span class="line">deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main</span><br><span class="line">EOF</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">更新源列表</span></span><br><span class="line">apt-get update</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">下载 kubectl，kubeadm以及 kubelet</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">（由于后续需要安装KubeEdge，KubeEdge支持的最新版本的k8s是1.22.0）</span></span><br><span class="line">apt-get install -y kubelet=1.22.0-00 kubeadm=1.22.0-00 kubectl=1.22.0-00</span><br></pre></td></tr></table></figure>
 <h2 id="启动各个节点">启动各个节点</h2>
 <ol>
-<li>
+<li class="lvl-3">
 <p>通过kubeadm init启动master节点</p>
  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kubeadm init \</span><br><span class="line">--apiserver-advertise-address=192.168.220.131 \</span><br><span class="line">--image-repository registry.aliyuncs.com/google_containers \</span><br><span class="line">--kubernetes-version v1.22.0 \</span><br><span class="line">--service-cidr=10.96.0.0/12 \</span><br><span class="line">--pod-network-cidr=10.244.0.0/16</span><br></pre></td></tr></table></figure>
 <p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271445417.png" alt=""></p>
@@ -296,15 +302,14 @@ h2{
 <p><em>note:</em> service-cidr的选取和PodCIDR及本机网络不能有重叠或者冲突，一般可以选择一个本机网络和PodCIDR都没有用到的私网地址段，比如PodCIDR使用10.244.0.0/16，那么service-cidr可以选择10.96.0.0/12，网络无重叠冲突即可。</p>
 </blockquote>
 </li>
-<li>
+<li class="lvl-3">
 <p>接下来在master节点上执行</p>
  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">run the following as a regular user</span></span><br><span class="line">mkdir -p $HOME/.kube</span><br><span class="line">cp -i /etc/kubernetes/admin.conf $HOME/.kube/config</span><br><span class="line">chown $(id -u):$(id -g) $HOME/.kube/config</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash"><span class="keyword">if</span> you are the root user, you can run:</span></span><br><span class="line">export KUBECONFIG=/etc/kubernetes/admin.conf</span><br></pre></td></tr></table></figure>
 <p><code>kubectl get nodes</code>：查看节点状态<br>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271452387.png" alt=""></p>
 </li>
-<li>
-<p>node加入集群<br>
-向集群添加新节点，执行的命令就是第一步<code>kubeadm init</code>最后输出的<code>kubeadm join</code>命令<br>
+<li class="lvl-3">
+<p>node加入集群向集群添加新节点，执行的命令就是第一步<code>kubeadm init</code>最后输出的<code>kubeadm join</code>命令<br>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271454061.png" alt=""></p>
  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">eg.k8s-server2作为一个node节点运行kubeadm <span class="built_in">join</span>命令</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">（要保证node节点的前置环境也装好了）</span></span><br><span class="line">kubeadm join 192.168.220.131:6443 --token lmnc8j.i5vke858hfo9pgka \</span><br><span class="line">    --discovery-token-ca-cert-hash sha256:70a2c8f5fbb50ce24caad2c04dfcf971e1ca5aa437765fd6b1b15bfc8d9cd563</span><br></pre></td></tr></table></figure>
 <p>加入集群成功：<br>
@@ -312,9 +317,8 @@ h2{
 <p>回到master节点，运行<code>kubectl get nodes</code>查看节点状态<br>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271524353.png" alt=""></p>
 </li>
-<li>
-<p>同理将k8s-server3加入集群<br>
-回到master节点运行<code>kubectl get nodes</code>查看节点状态，等一会儿，直到Status变为Ready，则server3成功加入集群<br>
+<li class="lvl-3">
+<p>同理将k8s-server3加入集群回到master节点运行<code>kubectl get nodes</code>查看节点状态，等一会儿，直到Status变为Ready，则server3成功加入集群<br>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271618605.png" alt=""></p>
 </li>
 </ol>
@@ -323,37 +327,33 @@ h2{
 <p>运行结果：<br>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271527114.png" alt=""></p>
 <p><code>kubectl get pods -n kube-system</code>：查看运行时容器pod<br>
-<code>kubectl get nodes</code>：查看节点状态<br>
-当STATUS显示为Ready时，则k8s环境就搭建好了：<br>
+<code>kubectl get nodes</code>：查看节点状态当STATUS显示为Ready时，则k8s环境就搭建好了：<br>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204271556072.png" alt=""></p>
 <h2 id="master部署Dashboard">master部署Dashboard</h2>
 <ol>
-<li>
+<li class="lvl-3">
 <p>To deploy Dashboard, execute following command:</p>
  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.5.1/aio/deploy/recommended.yaml</span><br></pre></td></tr></table></figure>
 </li>
-<li>
+<li class="lvl-3">
 <p>查看dashboard运行状态，它是在kubernetes-dashboard这个namespace中运行（从上面的部署信息可以看出，在部署时会创建kubernetes-dashboard这个namespace），以deployment方式部署，运行2个pod及2个service：</p>
  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看namespace=kubernetes-dashboard</span></span><br><span class="line">root@k8s-server1:~# kubectl get deployment -n kubernetes-dashboard | grep dashboard</span><br><span class="line">dashboard-metrics-scraper   1/1     1            1           14h</span><br><span class="line">kubernetes-dashboard        1/1     1            1           14h</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看namespace=kubernetes-dashboard的pod</span></span><br><span class="line">root@k8s-server1:~# kubectl -n kubernetes-dashboard get pods</span><br><span class="line">NAME                                         READY   STATUS    RESTARTS   AGE</span><br><span class="line">dashboard-metrics-scraper-856586f554-db4b8   1/1     Running   0          14h</span><br><span class="line">kubernetes-dashboard-7795fd6d89-6kfrv        1/1     Running   0          14h</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看namespace=kubernetes-dashboard的service</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">注：这里的kubernetes-dashboard的Type=NodePort和PORT=443:30001中的30001是后续操作才产生的。</span></span><br><span class="line">root@k8s-server1:~# kubectl -n kubernetes-dashboard get svc </span><br><span class="line">NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)         AGE</span><br><span class="line">dashboard-metrics-scraper   ClusterIP   10.106.34.25     &lt;none&gt;        8000/TCP        14h</span><br><span class="line">kubernetes-dashboard        NodePort    10.108.202.213   &lt;none&gt;        443:30001/TCP   14h</span><br></pre></td></tr></table></figure>
 </li>
-<li>
-<p>修改配置文件<br>
-由于默认的service是 ClusterIP类型，为了能在外部访问，这里将其改为nodeport方式。</p>
+<li class="lvl-3">
+<p>修改配置文件由于默认的service是 ClusterIP类型，为了能在外部访问，这里将其改为nodeport方式。</p>
  <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl -n kubernetes-dashboard edit service kubernetes-dashboard</span><br></pre></td></tr></table></figure>
 <p>在 ports下面添加nodePort: 32576，将 clusterIp改为NodePort</p>
  <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">...</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">clusterIP:</span> <span class="number">10.108</span><span class="number">.202</span><span class="number">.213</span></span><br><span class="line">  <span class="attr">clusterIPs:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="number">10.108</span><span class="number">.202</span><span class="number">.213</span></span><br><span class="line">  <span class="attr">externalTrafficPolicy:</span> <span class="string">Cluster</span></span><br><span class="line">  <span class="attr">internalTrafficPolicy:</span> <span class="string">Cluster</span></span><br><span class="line">  <span class="attr">ipFamilies:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">IPv4</span></span><br><span class="line">  <span class="attr">ipFamilyPolicy:</span> <span class="string">SingleStack</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">nodePort:</span> <span class="number">30001</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">443</span></span><br><span class="line">    <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">    <span class="attr">targetPort:</span> <span class="number">8443</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">k8s-app:</span> <span class="string">kubernetes-dashboard</span></span><br><span class="line">  <span class="attr">sessionAffinity:</span> <span class="string">None</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br><span class="line"><span class="string">...</span></span><br></pre></td></tr></table></figure>
 </li>
-<li>
+<li class="lvl-3">
 <p>登录dashboard<br>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281100264.png" alt=""><br>
-在k8s中 dashboard可以有两种访问方式：kubeconfig（HTTPS）和token（http）<br>
-可以参考官方文档：<br>
+在k8s中 dashboard可以有两种访问方式：kubeconfig（HTTPS）和token（http）可以参考官方文档：<br>
 <a target="_blank" rel="noopener" href="https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md">https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md</a></p>
-<ul>
-<li>
+<ul class="lvl-2">
+<li class="lvl-6">
 <p><strong>token认证</strong><br>
-创建dashboard-adminuser.yaml，通过ClusterRoleBinding使ServiceAccount和集群某个ClusterRole相关联。<br>
-注意：认证时的账号必须是ServiceAccount</p>
+创建dashboard-adminuser.yaml，通过ClusterRoleBinding使ServiceAccount和集群某个ClusterRole相关联。注意：认证时的账号必须是ServiceAccount</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim dashboard-adminuser.yaml </span><br></pre></td></tr></table></figure>
 <p>在dashboard-adminuser输入以下内容</p>
 <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kubernetes-dashboard</span></span><br><span class="line"></span><br><span class="line"><span class="meta">---</span></span><br><span class="line"><span class="attr">apiVersion:</span> <span class="string">rbac.authorization.k8s.io/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">ClusterRoleBinding</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line"><span class="attr">roleRef:</span></span><br><span class="line">  <span class="attr">apiGroup:</span> <span class="string">rbac.authorization.k8s.io</span></span><br><span class="line">  <span class="attr">kind:</span> <span class="string">ClusterRole</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">cluster-admin</span></span><br><span class="line"><span class="attr">subjects:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">kind:</span> <span class="string">ServiceAccount</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">admin-user</span></span><br><span class="line">  <span class="attr">namespace:</span> <span class="string">kubernetes-dashboard</span></span><br></pre></td></tr></table></figure>
@@ -370,13 +370,13 @@ h2{
 把获取到的Token复制到登录界面的Token输入框中，成功登陆dashboard:<br>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202204281120356.png" alt=""></p>
 </li>
-<li>
+<li class="lvl-6">
 <p><strong>kubeconfig认证</strong>//todo后续用到再补充</p>
 <ol>
-<li>配置集群信息</li>
-<li>使用上面token认证方式中的token信息（这里选用具有所有名称空间管理权限的那个token）写入集群验证</li>
-<li>配置context</li>
-<li>将/root/dashboard-admin.conf文件发送到主机，浏览器访问时选择Kubeconfig认证，载入该配置文件，点击登陆，即可实现访问。</li>
+<li class="lvl-9">配置集群信息</li>
+<li class="lvl-9">使用上面token认证方式中的token信息（这里选用具有所有名称空间管理权限的那个token）写入集群验证</li>
+<li class="lvl-9">配置context</li>
+<li class="lvl-9">将/root/dashboard-admin.conf文件发送到主机，浏览器访问时选择Kubeconfig认证，载入该配置文件，点击登陆，即可实现访问。</li>
 </ol>
 </li>
 </ul>
@@ -394,11 +394,18 @@ h2{
 <p><em><strong>solution：</strong></em><br>
   如果知道的比较晚，已经下载安装了kubeadm，该如何挽救呢？（这里一kubeadm为例,kubelet和kubectl同理）</p>
 <ol>
-<li>首先查看kubeadm版本： <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-cache madison kubelet</span><br></pre></td></tr></table></figure>
-笔者查看的时候最新版本是1.23.6-00，不写版本直接下载的应该就是这个版本。</li>
-<li>卸载kubelet <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">删除软件及其配置文件</span></span><br><span class="line">apt-get --purge remove kubelet</span><br></pre></td></tr></table></figure>
+<li class="lvl-3">
+<p>首先查看kubeadm版本：</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-cache madison kubelet</span><br></pre></td></tr></table></figure>
+<p>笔者查看的时候最新版本是1.23.6-00，不写版本直接下载的应该就是这个版本。</p>
 </li>
-<li>重新安装制定版本的kubelet <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-get install kubelet=1.22.0-00</span><br></pre></td></tr></table></figure>
+<li class="lvl-3">
+<p>卸载kubelet</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">删除软件及其配置文件</span></span><br><span class="line">apt-get --purge remove kubelet</span><br></pre></td></tr></table></figure>
+</li>
+<li class="lvl-3">
+<p>重新安装制定版本的kubelet</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-get install kubelet=1.22.0-00</span><br></pre></td></tr></table></figure>
 </li>
 </ol>
 <h2 id="8080-was-refused">8080 was refused</h2>
@@ -426,8 +433,7 @@ hostname 和 DNS 的解析规则不匹配导致报错,原因是 hostname 和 DNS
 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/schblog/p/14869532.html">https://www.cnblogs.com/schblog/p/14869532.html</a><br>
 <a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_26545503/article/details/109264010">https://blog.csdn.net/qq_26545503/article/details/109264010</a><br>
 <a target="_blank" rel="noopener" href="https://www.cnblogs.com/wangzy-Zj/p/13274095.html">https://www.cnblogs.com/wangzy-Zj/p/13274095.html</a><br>
-<a target="_blank" rel="noopener" href="https://blog.csdn.net/xiaochenwj1995/article/details/113464387">Dashboard认证访问</a><br>
-<a target="_blank" rel="noopener" href="https://blog.csdn.net/CEVERY/article/details/108753379">报错:The connection to the server localhost:8080 was refused</a></p>
+<a target="_blank" rel="noopener" href="https://blog.csdn.net/xiaochenwj1995/article/details/113464387">Dashboard认证访问</a><a target="_blank" rel="noopener" href="https://blog.csdn.net/CEVERY/article/details/108753379">报错:The connection to the server localhost:8080 was refused</a></p>
 
     </div>
 

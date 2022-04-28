@@ -247,17 +247,27 @@ background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
 <h2 id="分布式存储系统">分布式存储系统</h2>
 <p>  分布式存储系统，是将数据分散存储在多台独立的设备上。传统的网络存储系统采用集中的存储服务器存放所有数据，存储服务器成为系统性能的瓶颈，也是可靠性和安全性的焦点，不能满足大规模存储应用的需要。分布式网络存储系统采用可扩展的系统结构，利用多台存储服务器分担存储负荷，利用位置服务器定位存储信息，它不但提高了系统的可靠性、可用性和存取效率，还易于扩展。</p>
 <h2 id="分布式系统的三大特性CAP">分布式系统的三大特性CAP</h2>
-<ul>
-<li>一致性（Consistency）：多个数据副本是否能够保持一致；</li>
-<li>可用性（Availability）：每次请求都能获取非错的响应，但无法保证获取的数据是否最新；</li>
-<li>分区容忍性（Partition tolerance）：网络分区指分布式系统中的各个节点，任意分区（节点）网络故障时，系统仍需要可以对外提供服务。</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>一致性（Consistency）：多个数据副本是否能够保持一致；</p>
+</li>
+<li class="lvl-2">
+<p>可用性（Availability）：每次请求都能获取非错的响应，但无法保证获取的数据是否最新；</p>
+</li>
+<li class="lvl-2">
+<p>分区容忍性（Partition tolerance）：网络分区指分布式系统中的各个节点，任意分区（节点）网络故障时，系统仍需要可以对外提供服务。</p>
+</li>
 </ul>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301500346.png" alt = "CAP" width="400" height="300"/>
 <p>  分布式系统不可能同时满足这三个特性，最多只能同时满足其中两项，<strong>分区容忍性必不可少</strong>，因为需要总是假设网络不是可靠的，所以最终要在可用性和一致性之间做选择。</p>
 <p>可用性与一致性是冲突的，在多节点之间进行数据同步时</p>
-<ul>
-<li>为了保持一致性（CP），就需要让系统暂停服务，等待数据同步完成</li>
-<li>为了保证可用性（AP），同步过程中继续提供服务，读取的数据可能不一致</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>为了保持一致性（CP），就需要让系统暂停服务，等待数据同步完成</p>
+</li>
+<li class="lvl-2">
+<p>为了保证可用性（AP），同步过程中继续提供服务，读取的数据可能不一致</p>
+</li>
 </ul>
 <table>
 <thead>
@@ -288,8 +298,7 @@ background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
 <h2 id="分布式一致性raft">分布式一致性raft</h2>
 <p>  raft牺牲了A，保留了CP。分布式存储系统通常通过维护多个副本来进行容错，提高系统的可用性。要实现此目标，就必须要解决分布式存储系统的最核心问题：维护多个副本的一致。</p>
 <h2 id="什么是分布式一致性？">什么是分布式一致性？</h2>
-<p>  分布式系统的一致性是构建具有容错性（fault-tolerant）的分布式系统的基础。在一个具有一致性的性质的集群里，同一时刻所有的节点对存储在其中的某个值都有相同的结果，即对其分享的存储保持一致。集群具有自动恢复的性质，当少数节点失效的时候不影响集群的正常工作，当大多数集群中的节点失效的时候，集群则会停止服务（不会返回一个错误的结果）。<br>
-一致性协议就是用来干这事的，用来保证即使在部分（确切来说是小部分）副本宕机的情况下，系统仍然能正常对外提供服务。一致性协议通常基于replicated state machines，即所有节点都从同一个state出发，都经过同样的一些操作序列（log），最后到达同样的state。</p>
+<p>  分布式系统的一致性是构建具有容错性（fault-tolerant）的分布式系统的基础。在一个具有一致性的性质的集群里，同一时刻所有的节点对存储在其中的某个值都有相同的结果，即对其分享的存储保持一致。集群具有自动恢复的性质，当少数节点失效的时候不影响集群的正常工作，当大多数集群中的节点失效的时候，集群则会停止服务（不会返回一个错误的结果）。一致性协议就是用来干这事的，用来保证即使在部分（确切来说是小部分）副本宕机的情况下，系统仍然能正常对外提供服务。一致性协议通常基于replicated state machines，即所有节点都从同一个state出发，都经过同样的一些操作序列（log），最后到达同样的state。</p>
 <h2 id="分布式高并发">分布式高并发</h2>
 <p>//todo<br>
 同样的执行顺序，分布式系统如何实现高并发？</p>
@@ -307,18 +316,28 @@ background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
 <p>In designing Raft we applied specific techniques to improve understandability, including decomposition (Raft separates leader election, log replication, and safety) and state space reduction (relative to Paxos, Raft reduces the degree of nondeterminism and the ways servers can be inconsistent with each other)</p>
 </blockquote>
 <p>  Raft算法主要做了两个工作去让大家去易于理解</p>
-<ul>
-<li>问题分解（decomposition）：将&quot;复制集中节点一致性&quot;这个复杂的问题划分为数个可以被独立解释、理解、解决的子问题。raft中子问题包括：leader elect，log replication，safety，membership changes</li>
-<li>状态简化（state space reduction）：对算法做出一些限制，减少需要考虑的状态数，使得算法更加清晰，更少的不确定性（比如，保证新选举出来的leader会包含所有commited log entry）。</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>问题分解（decomposition）：将&quot;复制集中节点一致性&quot;这个复杂的问题划分为数个可以被独立解释、理解、解决的子问题。raft中子问题包括：leader elect，log replication，safety，membership changes</p>
+</li>
+<li class="lvl-2">
+<p>状态简化（state space reduction）：对算法做出一些限制，减少需要考虑的状态数，使得算法更加清晰，更少的不确定性（比如，保证新选举出来的leader会包含所有commited log entry）。</p>
+</li>
 </ul>
 <h2 id="Basics">Basics</h2>
 <blockquote>
 <p>任何一个节点都处于以下三种状态之一</p>
 </blockquote>
-<ul>
-<li>leader</li>
-<li>follower</li>
-<li>candidate</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>leader</p>
+</li>
+<li class="lvl-2">
+<p>follower</p>
+</li>
+<li class="lvl-2">
+<p>candidate</p>
+</li>
 </ul>
 <p><img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203301710546.png" alt=""></p>
 <p>  可以看出所有节点启动时都是follower状态；在一段时间内如果没有收到来自leader的心跳，从follower切换到candidate，发起选举；如果收到majority的造成票（含自己的一票）则切换到leader状态；如果发现其他节点比自己更新，则主动切换到follower。</p>
@@ -332,10 +351,16 @@ background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
 <blockquote>
 <p>节点之间通信通过RPC，basic consensus algorithm使用两种RPC请求。</p>
 </blockquote>
-<ul>
-<li>RequestVote RPC：由candidate在选举期间发起的；</li>
-<li>AppendEntries RPC：被leader发起复制日志，并提供心跳。</li>
-<li>(第三个RPC，用于在服务器之间传输快照。如果服务器没有及时收到响应，则会重试RPC，并并行发出RPC以获得最佳性能)</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>RequestVote RPC：由candidate在选举期间发起的；</p>
+</li>
+<li class="lvl-2">
+<p>AppendEntries RPC：被leader发起复制日志，并提供心跳。</p>
+</li>
+<li class="lvl-2">
+<p>(第三个RPC，用于在服务器之间传输快照。如果服务器没有及时收到响应，则会重试RPC，并并行发出RPC以获得最佳性能)</p>
+</li>
 </ul>
 <blockquote>
 <p>复制状态机架构（Replicated state machine architecture）</p>
@@ -345,19 +370,19 @@ background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
 <p>  一个节点启动，开始是follower，一个节点一直保持follower状态只要它能从leader或者candidate收到有效的RPC请求。</p>
 <p>  leader一段时间给所有的follower发送一个心跳包(AppendEntries RPCs that carry no log entries);如果一个follower在一段时间没有收到RPC请求，则称之为election timeout(选举超时)，然后它就假设系统中没有leader，并且发起一个选举来选择新的leader。</p>
 <p>  选举开始，发起选举的follower节点的term+1，并且转换为candidate状态，然后该节点为自己投票并且在集群中给其他节点发送RequestVote RPC请求。这个节点会一直保持在candidate状态，直到以下三个事情发生：</p>
-<ul>
-<li>
+<ul class="lvl-0">
+<li class="lvl-2">
 <p>it wins the election。该节点赢得选举；</p>
-<ul>
-<li>而一个节点(candidate)赢得选举的情况是它赢得了集群中大多数（&gt;1/2）节点(相同的term)的投票(包含自己的票)。每个节点只能投一票。</li>
-<li>//todo The majority rule ensures that at most one candidate can win the election for a particular term（候选者知道的信息不能比自己的少）</li>
-<li>first-come-first-served先来先得</li>
+<ul class="lvl-2">
+<li class="lvl-4">而一个节点(candidate)赢得选举的情况是它赢得了集群中大多数（&gt;1/2）节点(相同的term)的投票(包含自己的票)。每个节点只能投一票。</li>
+<li class="lvl-4">//todo The majority rule ensures that at most one candidate can win the election for a particular term（候选者知道的信息不能比自己的少）</li>
+<li class="lvl-4">first-come-first-served先来先得</li>
 </ul>
 </li>
-<li>
+<li class="lvl-2">
 <p>another server establishes itself as leader。收到其他自称为leader的AppendEntries RPC，只有当这个leader的term比自己大或者相等，才会承认该leader并进入follower状态，否则继续保持candidate状态。</p>
 </li>
-<li>
+<li class="lvl-2">
 <p>a period of time goes by with no winner。一段时间过后，没有节点赢得选举，导致这一结果的原因是，如果许多follower同时称为candidate，选票就会被平分，所以就没有candidate获得大多数的选票。当这种情况发生的时候，每个candidate会超时并且重新发起一个新的选举（term+1）来发起RequestVote RPC。然而，如果没有额外的措施，这种情况可能会无限期地重复。所以采用随机选举超时（randomized election timeouts）的方式来确保split vote很少出现并能够被快速解决。</p>
 </li>
 </ul>
@@ -379,8 +404,10 @@ background: linear-gradient(to top, #e6e9f0 0%, #eef1f5 100%);
 </blockquote>
 <h2 id="Safety">Safety</h2>
 <p>  前面的章节里描述了 Raft 算法是如何选举和复制日志的。然而，到目前为止描述的机制并不能充分的保证每一个状态机会按照相同的顺序执行相同的指令。（the same commands in the same order）</p>
-<ul>
-<li>eg：一个跟随者可能会进入不可用状态同时领导人已经提交了若干的日志条目，然后这个跟随者可能会被选举为领导人并且覆盖这些日志条目；因此，不同的状态机可能会执行不同的指令序列（<a href="#state-machine-safety">Figure 8</a>）。</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>eg：一个跟随者可能会进入不可用状态同时领导人已经提交了若干的日志条目，然后这个跟随者可能会被选举为领导人并且覆盖这些日志条目；因此，不同的状态机可能会执行不同的指令序列（<a href="#state-machine-safety">Figure 8</a>）。</p>
+</li>
 </ul>
 <blockquote>
 <p>选举限制（Election restriction）</p>
@@ -395,33 +422,50 @@ Raft 使用了一种简单的方法，它可以保证在选举的时候新的领
 </blockquote>
 <hr>
 <p>衡量一个分布式算法，有许多属性，如</p>
-<ul>
-<li>safety：nothing bad happens,</li>
-<li>liveness： something good eventually happens.</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>safety：nothing bad happens,</p>
+</li>
+<li class="lvl-2">
+<p>liveness： something good eventually happens.</p>
+</li>
 </ul>
 <p>  在任何系统模型下，都需要满足safety属性，即在任何情况下，系统都不能出现不可逆的错误，也不能向客户端返回错误的内容。比如，raft保证被复制到大多数节点的日志不会被回滚，那么就是safety属性。而raft最终会让所有节点状态一致，这属于liveness属性。<br>
 <img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311538296.png" alt=""></p>
 <h3 id="Election-Safety">Election Safety</h3>
 <p>  选举安全性，即<strong>任意一任期内最多一个leader被选出</strong>。这一点非常重要，在一个复制集中任何时刻只能有一个leader。系统中同时有多余一个leader，被称之为脑裂（brain split），这是非常严重的问题，会导致数据的覆盖丢失。在raft中，两点保证了这个属性：</p>
-<ul>
-<li>一个节点某一任期内最多只能投一票</li>
-<li>只有获得majority投票的节点才能成为leader</li>
+<ul class="lvl-0">
+<li class="lvl-4">
+<p>一个节点某一任期内最多只能投一票</p>
+</li>
+<li class="lvl-4">
+<p>只有获得majority投票的节点才能成为leader</p>
+</li>
 </ul>
 <h3 id="Leader-Append-Only">Leader Append-Only</h3>
 <p>leader从来不覆写和删除entries，只会append新的entries。</p>
 <h3 id="Log-Matching">Log Matching</h3>
-<ul>
-<li>If two entries in different logs have the same index and term, then they store the same command.</li>
-<li>If two entries in different logs have the same index and term, then the logs are identical in all preceding entries.</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>If two entries in different logs have the same index and term, then they store the same command.</p>
+</li>
+<li class="lvl-2">
+<p>If two entries in different logs have the same index and term, then the logs are identical in all preceding entries.</p>
+</li>
 </ul>
 <p>  首先，leader在某一term的任一位置只会创建一个log entry，且log entry是append-only。其次，consistency check。leader在AppendEntries中包含最新log entry之前的一个log 的term和index，如果follower在对应的term index找不到日志，那么就会告知leader不一致。<br>
   在没有异常的情况下，log matching是很容易满足的，但如果出现了node crash，情况就会变得负责。比如下图<br>
-<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311652938.png" alt=""><br>
-上图的a-f为某个follower可能存在的六种状态</p>
-<ul>
-<li>比leader日志少，如ab</li>
-<li>比leader日志多，如cd</li>
-<li>某些位置比leader多，某些日志比leader少，如ef（多少是针对任期而言的）</li>
+<img src="https://cdn.jsdelivr.net/gh/Hor1zontal/BLOG_IMG/2022/3/202203311652938.png" alt="">上图的a-f为某个follower可能存在的六种状态</p>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>比leader日志少，如ab</p>
+</li>
+<li class="lvl-2">
+<p>比leader日志多，如cd</p>
+</li>
+<li class="lvl-2">
+<p>某些位置比leader多，某些日志比leader少，如ef（多少是针对任期而言的）</p>
+</li>
 </ul>
 <blockquote>
 <p>In Raft, the leader handles inconsistencies by forcing the followers’ logs to duplicate its own。</p>
@@ -431,16 +475,20 @@ Raft 使用了一种简单的方法，它可以保证在选举的时候新的领
 <p>流程如下</p>
 <blockquote>
 <p>s1 leader 初始化nextIndex[x]为 leader最后一个log index + 1<br>
-s2 AppendEntries里prevLogTerm prevLogIndex来自 logs[nextIndex[x] - 1]<br>
+<input type="checkbox" id="checkbox1" checked="true"><label for="checkbox1">- 1]</label><br>
 s3 如果follower判断prevLogIndex位置的log term不等于prevLogTerm，那么返回 False，否则返回True<br>
-s4 leader收到follower的回复，如果返回值是False，则nextIndex[x] -= 1, 跳转到s2. 否则<br>
+<input type="checkbox" id="checkbox0" checked="true"><label for="checkbox0">-= 1, 跳转到s2. 否则</label><br>
 s5 同步nextIndex[x]后的<strong>所有log entries</strong>（一次性同步所有的）</p>
 </blockquote>
 <h3 id="leader-completeness">leader completeness</h3>
 <p>leader完整性：如果一个log entry在某个任期被提交（committed），那么这条日志一定会出现在所有更高term的leader的日志里面。这个跟leader election、log replication都有关。</p>
-<ul>
-<li>一个日志被复制到majority节点才算committed</li>
-<li>一个节点得到majority的投票才能成为leader，而节点A给节点B投票的其中一个前提是，B的日志不能比A的日志旧。下面的引文指处了如何判断日志的新旧</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>一个日志被复制到majority节点才算committed</p>
+</li>
+<li class="lvl-2">
+<p>一个节点得到majority的投票才能成为leader，而节点A给节点B投票的其中一个前提是，B的日志不能比A的日志旧。下面的引文指处了如何判断日志的新旧</p>
+</li>
 </ul>
 <p>raft与其他协议（Viewstamped Replication、mongodb）不同，raft始终保证leade包含最新的已提交的日志，因此leader不会从follower catchup日志，这也大大简化了系统的复杂度。</p>
 <h3 id="state-machine-safety">state machine safety</h3>

@@ -221,24 +221,41 @@
 <span id="more"></span>
 <h2 id="语法">语法</h2>
 <h3 id="turle-海龟画图">turle 海龟画图</h3>
-<ul>
-<li>坐标原点在中心，跟坐标系一样 默认向x轴正方向</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p>坐标原点在中心，跟坐标系一样 默认向x轴正方向</p>
+</li>
 </ul>
 <h3 id="可以使用Python中内置的函数对变量类型进行转换。">可以使用Python中内置的函数对变量类型进行转换。</h3>
-<ul>
-<li><code>int()</code>：将一个数值或字符串转换成整数，可以指定进制。</li>
-<li><code>float()</code>：将一个字符串转换成浮点数。</li>
-<li><code>str()</code>：将指定的对象转换成字符串形式，可以指定编码。</li>
-<li><code>chr()</code>：将整数转换成该编码对应的字符串（一个字符）。</li>
-<li><code>ord()</code>：将字符串（一个字符）转换成对应的编码（整数）。</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p><code>int()</code>：将一个数值或字符串转换成整数，可以指定进制。</p>
+</li>
+<li class="lvl-2">
+<p><code>float()</code>：将一个字符串转换成浮点数。</p>
+</li>
+<li class="lvl-2">
+<p><code>str()</code>：将指定的对象转换成字符串形式，可以指定编码。</p>
+</li>
+<li class="lvl-2">
+<p><code>chr()</code>：将整数转换成该编码对应的字符串（一个字符）。</p>
+</li>
+<li class="lvl-2">
+<p><code>ord()</code>：将字符串（一个字符）转换成对应的编码（整数）。</p>
+</li>
 </ul>
 <h3 id="占位符">占位符</h3>
-<ul>
-<li><code>%d</code>是整数的占位符</li>
-<li><code>%f</code>是小数的占位符</li>
-<li><code>%%</code>表示百分号<br>
-<code>print('%.1f华氏度 = %.1f摄氏度' % (f, c))</code><br>
-说明：在使用print函数输出时，也可以对字符串内容进行格式化处理，上面print函数中的字符串%.1f是一个占位符，稍后会由一个float类型的变量值替换掉它。同理，如果字符串中有%d，后面可以用一个int类型的变量值替换掉它，而%s会被字符串的值替换掉。除了这种格式化字符串的方式外，还可以用下面的方式来格式化字符串，其中{f:.1f}和{c:.1f}可以先看成是{f}和{c}，表示输出时会用变量f和变量c的值替换掉这两个占位符，后面的:.1f表示这是一个浮点数，小数点后保留1位有效数字。</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p><code>%d</code>是整数的占位符</p>
+</li>
+<li class="lvl-2">
+<p><code>%f</code>是小数的占位符</p>
+</li>
+<li class="lvl-2">
+<p><code>%%</code>表示百分号<code>print('%.1f华氏度 = %.1f摄氏度' % (f, c))</code><br>
+说明：在使用print函数输出时，也可以对字符串内容进行格式化处理，上面print函数中的字符串%.1f是一个占位符，稍后会由一个float类型的变量值替换掉它。同理，如果字符串中有%d，后面可以用一个int类型的变量值替换掉它，而%s会被字符串的值替换掉。除了这种格式化字符串的方式外，还可以用下面的方式来格式化字符串，其中{f:.1f}和{c:.1f}可以先看成是{f}和{c}，表示输出时会用变量f和变量c的值替换掉这两个占位符，后面的:.1f表示这是一个浮点数，小数点后保留1位有效数字。</p>
+</li>
 </ul>
 <p><code>print(f'&#123;f:.1f&#125;华氏度 = &#123;c:.1f&#125;摄氏度')</code></p>
 <h3 id="运算符">运算符</h3>
@@ -304,7 +321,7 @@
 </tr>
 <tr>
 <td><code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>//=</code> <code>**=</code> <code>&amp;=</code> `</td>
-<td>=<code> </code>^=<code> </code>&gt;&gt;=<code> </code>&lt;&lt;=`</td>
+<td>=<code> </code>^=` `&gt;&gt;=` `&lt;&lt;=`</td>
 </tr>
 </tbody>
 </table>
@@ -314,11 +331,19 @@
 <h3 id="循环结构">循环结构</h3>
 <p><em>for-in循环</em></p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sum</span> = <span class="number">0</span></span><br><span class="line"><span class="keyword">for</span> x <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">101</span>):</span><br><span class="line">    <span class="built_in">sum</span> += x</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">sum</span>)</span><br></pre></td></tr></table></figure>
-<ul>
-<li><code>range(101)</code>：可以用来产生0到100范围的整数，需要注意的是取不到101。</li>
-<li><code>range(1, 101)</code>：可以用来产生1到100范围的整数，相当于前面是闭区间后面是开区间。</li>
-<li><code>range(1, 101, 2)</code>：可以用来产生1到100的奇数，其中2是步长，即每次数值递增的值。</li>
-<li><code>range(100, 0, -2)</code>：可以用来产生100到1的偶数，其中-2是步长，即每次数字递减的值。</li>
+<ul class="lvl-0">
+<li class="lvl-2">
+<p><code>range(101)</code>：可以用来产生0到100范围的整数，需要注意的是取不到101。</p>
+</li>
+<li class="lvl-2">
+<p><code>range(1, 101)</code>：可以用来产生1到100范围的整数，相当于前面是闭区间后面是开区间。</p>
+</li>
+<li class="lvl-2">
+<p><code>range(1, 101, 2)</code>：可以用来产生1到100的奇数，其中2是步长，即每次数值递增的值。</p>
+</li>
+<li class="lvl-2">
+<p><code>range(100, 0, -2)</code>：可以用来产生100到1的偶数，其中-2是步长，即每次数字递减的值。</p>
+</li>
 </ul>
 <p><em>while循环</em></p>
 <h3 id="使用字符串">使用字符串</h3>
